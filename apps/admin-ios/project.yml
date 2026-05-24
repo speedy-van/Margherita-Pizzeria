@@ -1,0 +1,76 @@
+name: MargheritaAdmin
+options:
+  bundleIdPrefix: uk.margheritapizzeria
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  groupSortPosition: top
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_BITCODE: NO
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+targets:
+  MargheritaAdmin:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: MargheritaAdmin
+        excludes:
+          - "**/.DS_Store"
+    resources:
+      - path: MargheritaAdmin/Resources
+        optional: true
+    info:
+      path: MargheritaAdmin/Info.plist
+      properties:
+        CFBundleDisplayName: Margherita Admin
+        CFBundleShortVersionString: "0.1.1"
+        CFBundleVersion: "2"
+        UILaunchScreen:
+          UIColorName: SplashBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIRequiresFullScreen: false
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSIncludesSubdomains: true
+        UIBackgroundModes:
+          - remote-notification
+        ITSAppUsesNonExemptEncryption: false
+        NSUserNotificationsUsageDescription: "We notify you of new orders and bookings."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: uk.margheritapizzeria.admin
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Debug:
+          GCC_PREPROCESSOR_DEFINITIONS: "DEBUG=1 $(inherited)"
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
+          API_BASE_URL: "http://localhost:3000/"
+          INFOPLIST_KEY_API_BASE_URL: $(API_BASE_URL)
+          INFOPLIST_KEY_ENABLE_HTTP_LOGGING: "YES"
+        Release:
+          API_BASE_URL: "https://www.margheritapizza.uk/"
+          INFOPLIST_KEY_API_BASE_URL: $(API_BASE_URL)
+          INFOPLIST_KEY_ENABLE_HTTP_LOGGING: "NO"
+configs:
+  Debug: debug
+  Release: release

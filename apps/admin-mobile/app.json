@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Margherita Admin",
+    "slug": "margherita-pizzaa",
+    "owner": "ahmadawadalwakai",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "margherita-admin-debug",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "android": {
+      "package": "uk.margheritapizzeria.admin.debug"
+    },
+    "ios": {
+      "bundleIdentifier": "uk.margheritapizzeria.admin.debug",
+      "supportsTablet": true
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "MARGHERITA_BASE_URL_LAN": "http://192.168.1.161:3000",
+      "MARGHERITA_BASE_URL_EMULATOR": "http://10.0.2.2:3000",
+      "MARGHERITA_BASE_URL_WEB": "http://localhost:3000",
+      "eas": {
+        "projectId": "906a4b60-7821-4e06-97ee-dd9a1f0ac174"
+      }
+    }
+  }
+}

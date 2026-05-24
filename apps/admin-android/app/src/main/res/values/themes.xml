@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MargheritaAdmin" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.MargheritaAdmin.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#7A1F1F</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        <item name="postSplashScreenTheme">@style/Theme.MargheritaAdmin</item>
+    </style>
+</resources>

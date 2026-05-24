@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Margherita Pizzeria - Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700;1,900&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   BRAND TOKENS — TV display + website unified
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg:      #141210;
+  --red:     #C8392B;
+  --gold:    #C9952A;
+  --sage:    #6B8A6B;
+  --cream:   #F0EBE0;
+  --muted:   #8D8983;
+  --dim:     #616059;
+  --border:  #2a2926;
+  --half-w:  148.5mm;
+  --page-h:  210mm;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GOLDEN RATIO TYPE SCALE (φ = 1.618)
+   Pure:  10 → 16 → 26 → 42px
+   Fill:  10, 12, 16, 20, 26, 42px
+
+   GOLDEN RATIO SPACING SCALE (mm)
+   1.5 → 2.5 → 4 → 6.5 → 10.5mm
+
+   BLEED: 8mm padding (5mm safe zone × φ = 8.09)
+   Panel: 148.5 × 210mm. Content: 132.5 × 194mm
+   ═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* PRINT SPEC: 3mm bleed all edges — trim size 297×210mm, bleed size 303×216mm
+   Safe zone: 5mm from trim (8mm from bleed edge — 8mm panel padding satisfies this)
+   CMYK conversion + PDF/X-1a output: use Acrobat Pro Preflight after Chrome PDF export
+   CMYK equivalents for Acrobat conversion:
+     Background #141210  → C:8  M:8  Y:9  K:92
+     Red       #C8392B  → C:0  M:78 Y:83 K:22
+     Gold      #C9952A  → C:0  M:30 Y:83 K:21
+     Sage      #6B8A6B  → C:45 M:22 Y:45 K:12
+     Cream     #F0EBE0  → C:3  M:5  Y:9  K:0
+     Deliveroo #00CCBC  → C:100 M:0 Y:10 K:20  */
+@page { size: 303mm 216mm; margin: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; /* φ intermediate: 10 × 1.2 */
+  line-height: 1.4;
+  background: #222;
+  color: var(--cream);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE + PANEL STRUCTURE
+   ═══════════════════════════════════════════════════════════ */
+.page {
+  width: 297mm; height: 210mm;
+  display: flex; position: relative;
+  overflow: hidden; background: var(--bg);
+  page-break-after: always;
+  margin: 0 auto 10px;
+}
+
+@media print {
+  body { background: transparent; margin: 0; }
+  .page { margin: 0; width: 303mm; height: 216mm; }
+  :root { --half-w: 151.5mm; --page-h: 216mm; }
+}
+
+.panel {
+  width: var(--half-w); height: var(--page-h);
+  padding: 8mm; /* φ bleed: 5mm × 1.618 = 8.09mm */
+  position: relative; overflow: hidden;
+}
+
+.page .panel:first-child {
+  border-right: 1px dashed rgba(240,235,224,0.05); /* fold guide — screen only */
+}
+@media print {
+  .page .panel:first-child { border-right: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ITALIAN FLAG STRIPE — brand element across all mediums
+   ═══════════════════════════════════════════════════════════ */
+.flag-stripe {
+  position: absolute; top: -3mm; left: -3mm; right: -3mm;
+  display: flex; height: 8mm; z-index: 5;
+}
+.flag-stripe span { flex: 1; }
+.flag-stripe .g { background: #009246; }
+.flag-stripe .w { background: #B0ADA8; }
+.flag-stripe .r { background: var(--red); }
+
+.flag-inline { display: inline-flex; gap: 2px; }
+.flag-inline span { height: 2.5px; width: 10px; border-radius: 1px; }
+
+/* ═══════════════════════════════════════════════════════════
+   LOGO — "Margherita." red dot
+   ═══════════════════════════════════════════════════════════ */
+.logo { font-family: 'DM Sans', sans-serif; font-weight: 400; color: var(--cream); }
+.logo .dot { color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════════
+   CATEGORY HEADERS — 16px (φ step: 10 × 1.618)
+   ═══════════════════════════════════════════════════════════ */
+.cat-header {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 3.5mm;
+  margin-bottom: 0.5mm;
+}
+.cat-header:first-child, .cat-header.first { margin-top: 0; }
+
+.cat-header h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px; /* φ step: 10 × 1.618 */
+  font-weight: 700;
+  letter-spacing: 0.03em; color: var(--gold);
+  line-height: 1.1;
+}
+
+.cat-sub {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic; line-height: 1.2;
+  margin-top: -0.5mm;
+  margin-bottom: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MENU TABLES — 12px body (φ fill), 10px desc (φ base)
+   ═══════════════════════════════════════════════════════════ */
+.menu-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px; line-height: 1.35;
+}
+
+.menu-table thead th {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600; font-size: 12px;
+  text-align: right; color: var(--gold);
+  padding: 0; white-space: nowrap;
+  letter-spacing: 0;
+  width: 34px;
+}
+.menu-table thead th:first-child { text-align: left; width: auto; }
+
+.menu-table td {
+  padding: 1.5px 0; vertical-align: top;
+}
+.menu-table td:first-child {
+  text-align: left;
+  color: var(--cream); font-weight: 500;
+  font-size: 12px;
+}
+.menu-table td:not(:first-child) {
+  text-align: right; white-space: nowrap;
+  color: var(--cream); font-weight: 400;
+  width: 34px; font-size: 12px;
+}
+
+.menu-table .desc {
+  font-size: 10px; /* φ base */
+  color: var(--muted);
+  font-weight: 300; font-style: italic;
+  display: block; line-height: 1.15;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ITEM ROWS — 12px names (φ fill), 10px descriptions (φ base)
+   ═══════════════════════════════════════════════════════════ */
+.item-row {
+  display: flex; justify-content: space-between;
+  align-items: baseline; font-size: 12px;
+  line-height: 1.35; gap: 4mm; /* φ spacing step 3 */
+}
+.item-name { font-weight: 500; flex: 1; }
+.item-price { font-weight: 500; white-space: nowrap; text-align: right; }
+
+.item-desc {
+  font-size: 10px; color: var(--muted);
+  font-style: italic; line-height: 1.15;
+  margin-top: -1px; margin-bottom: 1px;
+}
+
+.note-line {
+  font-size: 10px; color: var(--dim);
+  font-style: italic; line-height: 1.3;
+  margin-top: 1.5mm; /* φ spacing step 1 */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FRONT COVER — 42px logo (φ4), 26px sub (φ3), 10px body (φ1)
+   ═══════════════════════════════════════════════════════════ */
+.front-cover {
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  text-align: center;
+}
+
+.front-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 42px; font-weight: 900;
+  line-height: 0.95; color: var(--cream);
+  letter-spacing: -0.5px;
+}
+.front-logo .dot { color: var(--red); }
+
+.front-sub {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px; /* φ step 3: 10 × φ^2 */
+  font-weight: 400;
+  font-style: italic; color: var(--gold);
+  margin-top: 1.5mm; /* φ spacing step 1 */
+}
+
+.front-tagline {
+  font-size: 10px; /* φ base */
+  font-weight: 500;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--muted); margin-top: 6.5mm; /* φ spacing step 4 */
+}
+
+.front-flag {
+  display: flex; gap: 3px; margin-top: 4mm; /* φ step 3 */ justify-content: center;
+}
+.front-flag span { height: 3px; width: 26px; /* φ step 3 */ border-radius: 2px; }
+
+.halal-badge {
+  width: 16mm; /* φ: 10mm × φ */ height: 16mm;
+  border: 1.5px solid rgba(201,149,42,0.55);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--gold);
+  font-family: 'Playfair Display', serif;
+  margin-top: 0;
+}
+
+/* Halal positioned bottom-right as a seal, so main content centres independently */
+/* Halal as subtle seal, bottom-right corner */
+.front-cover .halal-badge {
+  position: absolute !important;
+  bottom: 10mm !important;
+  right: 10mm !important;
+  margin: 0 !important;
+  opacity: 0.35;
+  width: 12mm !important;
+  height: 12mm !important;
+  font-size: 10px !important;
+}
+
+.front-desc {
+  font-size: 10px; /* φ base */ color: var(--dim);
+  letter-spacing: 0.15em; text-transform: uppercase;
+  margin-top: 4mm; /* φ step 3 */
+}
+
+.front-addr {
+  font-size: 12px; /* φ fill */ color: var(--muted);
+  margin-top: 6.5mm; /* φ step 4 */ line-height: 1.618; /* golden ratio line-height */
+}
+.front-addr strong {
+  color: var(--gold); font-weight: 600;
+  font-size: 16px; /* φ step 2 */ display: block; margin-top: 1.5mm; /* φ step 1 */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BACK COVER — deals + story
+   ═══════════════════════════════════════════════════════════ */
+.back-cover {
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+}
+
+.back-story {
+  font-size: 10px; line-height: 1.4;
+  color: var(--muted); font-style: italic;
+  margin-bottom: 1.5mm;
+}
+.back-story strong { color: var(--cream); font-style: normal; }
+
+/* Deal groups — TV .s-when badge style */
+.deal-group { margin-top: 1.5mm; }
+.deal-group:first-child { margin-top: 0; }
+
+.deal-group-label {
+  font-size: 8.5px; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 3px;
+  margin-bottom: 1mm;
+}
+.deal-group-label.weekday {
+  color: var(--gold);
+  border: 1px solid rgba(201,149,42,0.3);
+  background: rgba(201,149,42,0.07);
+}
+.deal-group-label.weekend {
+  color: #e87070;
+  border: 1px solid rgba(200,57,43,0.3);
+  background: rgba(200,57,43,0.07);
+}
+.deal-group-label.everyday {
+  color: var(--sage); filter: brightness(1.3);
+  border: 1px solid rgba(107,138,107,0.3);
+  background: rgba(107,138,107,0.07);
+}
+
+.deal-group-label .dot-ind {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.deal-group-label.weekday .dot-ind { background: var(--gold); }
+.deal-group-label.weekend .dot-ind { background: var(--red); }
+.deal-group-label.everyday .dot-ind { background: var(--sage); filter: brightness(1.4); }
+
+.deal-item {
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; line-height: 1.25; gap: 4px;
+}
+.deal-item .d-name { flex: 1; color: var(--cream); font-weight: 400; }
+.deal-item .d-price { white-space: nowrap; font-weight: 600; color: var(--gold); }
+
+.deal-desc {
+  font-size: 8.5px; color: var(--muted);
+  font-style: italic; line-height: 1.1;
+  margin-top: -1px; margin-bottom: 0;
+}
+
+.back-footer {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: flex-end;
+}
+
+/* Contact group — golden ratio spacing */
+.back-contact-group {
+  display: flex; flex-direction: column;
+  align-items: center;
+  gap: 1.5mm; /* φ step 1 */
+  margin-bottom: 2.5mm; /* φ step 2 — separates from fine print */
+}
+.back-contact-group .back-phone { margin-bottom: 0; }
+.back-contact-group .back-platforms { margin-bottom: 0; }
+
+/* Fine print — sits against bleed */
+.back-bottom {
+  margin-top: 0;
+}
+
+/* Hero: phone number — the primary action */
+.back-phone {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 1.5mm;
+}
+
+/* Supporting: platforms — how to order */
+.back-platforms {
+  font-size: 10px; /* φ base */
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 4mm; /* φ step 3 — gap before hours block */
+}
+
+/* Footer hours table gets tighter spacing from phone group */
+.back-footer .hours-table {
+  margin-bottom: 4mm; /* φ step 3 — gap before fine print */
+}
+
+/* Fine print: allergy + credit — smallest, dimmest */
+.back-fine-print {
+  font-size: 10px; /* φ base */
+  color: var(--dim);
+  font-style: italic;
+  margin-bottom: 1.5mm; /* φ step 1 */
+}
+.back-fine-print.credit {
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #444140;
+  margin-bottom: 0;
+}
+
+/* Opening hours table */
+.hours-table {
+  width: auto; margin: 0 auto 1.5mm;
+  border-collapse: collapse;
+  font-size: 10px; /* φ base */
+}
+.hours-table td {
+  padding: 0.5px 0;
+  color: var(--cream);
+}
+.hours-table td:first-child {
+  text-align: left; padding-right: 4mm; /* φ step 3 */
+  color: var(--muted); font-weight: 400;
+}
+.hours-table td:last-child {
+  text-align: right; font-weight: 500;
+}
+
+/* Front cover hours — bright to match back page */
+.front-hours {
+  margin-top: 4mm; /* φ step 3 */
+}
+.front-hours .hours-table {
+  font-size: 10px;
+}
+.front-hours .hours-table td:first-child {
+  color: var(--muted);
+}
+.front-hours .hours-table td:last-child {
+  color: var(--cream);
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INSIDE PANELS — 26px headers (φ step 3)
+   ═══════════════════════════════════════════════════════════ */
+.panel-header {
+  text-align: center;
+  margin-top: 1mm;
+  margin-bottom: 1.5mm;
+}
+.panel-header h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px; /* φ step 3: 10 × φ^2 */
+  font-weight: 800;
+  color: var(--cream); letter-spacing: 0.02em;
+}
+
+.inside-right .cols {
+  column-count: 2; column-gap: 4mm; /* φ step 3 */
+  column-fill: balance;
+  padding-top: 4mm; /* align first headings with pizza panel's "Stone Baked" heading */
+  height: calc(var(--page-h) - 24mm);
+}
+
+/* First category in each column aligns to top */
+.inside-right .cols > .break-avoid:first-child .cat-header {
+  margin-top: 0;
+}
+
+.break-avoid { break-inside: avoid; }
+
+/* ═══════════════════════════════════════════════════════════
+   BACKGROUND ILLUSTRATIONS — low opacity decorative SVGs
+   ═══════════════════════════════════════════════════════════ */
+.panel-illus {
+  position: absolute; pointer-events: none; z-index: 0;
+  opacity: 0.035;
+}
+.panel > *:not(.flag-stripe):not(.panel-illus) { position: relative; z-index: 1; }
+
+/* Front cover illustrations */
+.illus-front-pizza {
+  bottom: 12mm; left: 8mm;
+  width: 55mm; height: 55mm;
+  transform: rotate(-12deg);
+}
+.illus-front-wheat {
+  top: 15mm; left: 10mm;
+  width: 30mm; height: 50mm;
+  transform: rotate(8deg);
+}
+.illus-front-olive {
+  bottom: 35mm; right: 10mm;
+  width: 25mm; height: 40mm;
+  transform: rotate(-5deg);
+}
+
+/* Back cover illustrations */
+.illus-back-cutter {
+  bottom: 12mm; left: 5mm;
+  width: 38mm; height: 50mm;
+  transform: rotate(18deg);
+}
+.illus-back-rolling {
+  top: 15mm; right: 8mm;
+  width: 45mm; height: 20mm;
+  transform: rotate(-8deg);
+}
+
+/* Pizza panel illustrations */
+.illus-pizza-lg {
+  bottom: 8mm; right: 5mm;
+  width: 80mm; height: 80mm;
+}
+.illus-slice {
+  top: 12mm; right: 8mm;
+  width: 35mm; height: 35mm;
+  transform: rotate(15deg);
+}
+.illus-basil {
+  bottom: 45mm; left: 3mm;
+  width: 28mm; height: 28mm;
+  transform: rotate(-20deg);
+}
+.illus-tomato {
+  top: 50mm; left: 5mm;
+  width: 22mm; height: 22mm;
+}
+.illus-pepper {
+  bottom: 90mm; right: 3mm;
+  width: 18mm; height: 35mm;
+  transform: rotate(12deg);
+}
+
+/* Kitchen panel illustrations */
+.illus-kebab {
+  top: 20mm; right: 3mm;
+  width: 25mm; height: 60mm;
+}
+.illus-sauce {
+  bottom: 10mm; left: 5mm;
+  width: 35mm; height: 50mm;
+}
+.illus-wrap {
+  bottom: 55mm; right: 8mm;
+  width: 30mm; height: 35mm;
+  transform: rotate(10deg);
+}
+.illus-fork-knife {
+  top: 12mm; left: 5mm;
+  width: 20mm; height: 45mm;
+}
+.illus-chilli {
+  bottom: 95mm; left: 3mm;
+  width: 15mm; height: 30mm;
+  transform: rotate(-15deg);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PIZZA PANEL — 27 items (+Mexican, +Philadelphia, +Syrian)
+   Height budget: 194mm (content area after 8mm bleed)
+   Panel title: 6mm + Stone Baked header+sub: 5mm +
+   11 items x 5mm = 55mm + Chef's header: 4.5mm +
+   13 items x 5mm = 65mm + note: 3mm = ~138.5mm
+   Spare: ~55.5mm — comfortably within bleed
+   ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   INSIDE PANELS — unified sizing for consistency
+   Items: 11px, Descriptions: 9px, Headers: 14px, Title: 20px
+   ═══════════════════════════════════════════════════════════ */
+/* Pizza panel: use full height, equal top/bottom bleed */
+.pizza-panel {
+  display: flex; flex-direction: column;
+}
+.pizza-panel > .pizza-content {
+  flex: 1; display: flex; flex-direction: column; justify-content: space-between;
+  position: relative; z-index: 1;
+}
+.pizza-panel .menu-table,
+.inside-right .item-row { font-size: 10.5px; line-height: 1.3; }
+.pizza-panel .menu-table td:first-child,
+.inside-right .item-name { font-size: 10.5px; }
+.pizza-panel .menu-table td:not(:first-child),
+.inside-right .item-price { font-size: 10.5px; }
+.pizza-panel .menu-table .desc,
+.inside-right .item-desc { font-size: 8.5px; line-height: 1.15; }
+.pizza-panel .menu-table td { padding: 1.5px 0; vertical-align: top; }
+.pizza-panel .cat-sub,
+.inside-right .cat-sub { margin-bottom: 0.5mm; margin-top: 0; }
+.pizza-panel .panel-header,
+.inside-right .panel-header { margin-top: 0; margin-bottom: 0.5mm; }
+.pizza-panel .panel-header h2,
+.inside-right .panel-header h2 { font-size: 18px; }
+.pizza-panel .cat-header h3,
+.inside-right .cat-header h3 { font-size: 13px; }
+.pizza-panel .cat-header,
+.inside-right .cat-header { margin-top: 3mm; margin-bottom: 0; }
+.pizza-panel .note-line { margin-top: auto; font-size: 8px; padding-top: 1.5mm; }
+
+.v-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 9px; height: 9px;
+  border: 0.6px solid #6B8A6B; border-radius: 50%;
+  font-size: 5.5px; font-weight: 700; color: #6B8A6B;
+  margin-left: 2px; vertical-align: middle;
+  line-height: 1; font-style: normal; font-family: 'DM Sans', sans-serif;
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ PAGE 1: OUTSIDE (Back | Front) ════════════════════ -->
+<div class="page">
+
+  <!-- BACK COVER (left half) -->
+  <div class="panel back-cover">
+    <div class="flag-stripe"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+
+    <!-- Back cover illustrations -->
+    <svg class="panel-illus illus-back-rolling" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="25" y="10" width="70" height="18" rx="9" stroke="#F0EBE0" stroke-width="1.2"/>
+      <line x1="8" y1="19" x2="25" y2="19" stroke="#F0EBE0" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="95" y1="19" x2="112" y2="19" stroke="#F0EBE0" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="8" cy="19" r="4" stroke="#F0EBE0" stroke-width="0.8"/>
+      <circle cx="112" cy="19" r="4" stroke="#F0EBE0" stroke-width="0.8"/>
+    </svg>
+    <!-- Pizza cutter wheel — bottom left, pairs with rolling pin -->
+    <svg class="panel-illus illus-back-cutter" viewBox="0 0 80 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Handle -->
+      <path d="M38 42 L28 8" stroke="#F0EBE0" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M42 42 L52 8" stroke="#F0EBE0" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M28 8 Q40 3 52 8" stroke="#F0EBE0" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+      <rect x="32" y="6" width="16" height="4" rx="2" stroke="#F0EBE0" stroke-width="0.8"/>
+      <!-- Neck / guard -->
+      <path d="M36 40 Q40 36 44 40" stroke="#F0EBE0" stroke-width="1" fill="none"/>
+      <!-- Wheel -->
+      <circle cx="40" cy="72" r="30" stroke="#F0EBE0" stroke-width="1.5"/>
+      <circle cx="40" cy="72" r="22" stroke="#F0EBE0" stroke-width="0.4" stroke-dasharray="3 3"/>
+      <circle cx="40" cy="72" r="4" stroke="#F0EBE0" stroke-width="1"/>
+      <!-- Serrated edge marks -->
+      <path d="M11 62 Q14 57 17 62" stroke="#F0EBE0" stroke-width="0.7" fill="none"/>
+      <path d="M17 62 Q20 57 23 62" stroke="#F0EBE0" stroke-width="0.7" fill="none"/>
+      <path d="M57 62 Q60 57 63 62" stroke="#F0EBE0" stroke-width="0.7" fill="none"/>
+      <path d="M63 62 Q66 57 69 62" stroke="#F0EBE0" stroke-width="0.7" fill="none"/>
+      <path d="M28 97 Q31 102 34 97" stroke="#F0EBE0" stroke-width="0.7" fill="none"/>
+      <path d="M46 97 Q49 102 52 97" stroke="#F0EBE0" stroke-width="0.7" fill="none"/>
+    </svg>
+
+    <div>
+      <div class="cat-header first">
+        <h3>Our Story</h3>
+        <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+      </div>
+      <p class="back-story">"Our head chef trained three years in Italy mastering stone baked pizza. Syrian and Swedish roots, 20 years of experience, a fusion of cultures in every dish. Sourdough rises 24 hours with natural yeast. <strong>Real craft, real dough, real flavour</strong>."</p>
+
+      <div class="cat-header">
+        <h3>Deals</h3>
+        <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+      </div>
+
+      <div class="deal-group">
+        <div class="deal-group-label weekday"><span class="dot-ind"></span>Monday to Thursday &middot; 11am to 4pm</div>
+        <div class="deal-item"><span class="d-name">10" Pizza + Chips + Drink</span><span class="d-price">&pound;10</span></div>
+        <div class="deal-item"><span class="d-name">King Smashburger + Chips + Drink</span><span class="d-price">&pound;7.50</span></div>
+      </div>
+
+      <div class="deal-group">
+        <div class="deal-group-label weekend"><span class="dot-ind"></span>Weekend (no drinks)</div>
+        <div class="deal-item"><span class="d-name">10" Deal</span><span class="d-price">&pound;14.99</span></div>
+        <div class="deal-desc">2x 10" pizza + chips</div>
+        <div class="deal-item"><span class="d-name">12" Deal</span><span class="d-price">&pound;18.99</span></div>
+        <div class="deal-desc">2x 12" pizza + chips</div>
+        <div class="deal-item"><span class="d-name">Family Deal</span><span class="d-price">&pound;24.99</span></div>
+        <div class="deal-desc">3x 12" pizza + chips</div>
+        <div class="deal-item"><span class="d-name">King Smashburger Deal</span><span class="d-price">&pound;15</span></div>
+        <div class="deal-desc">2 king smashburgers + chips</div>
+      </div>
+
+      <div class="deal-group">
+        <div class="deal-group-label everyday"><span class="dot-ind"></span>Every Day</div>
+        <div class="deal-item"><span class="d-name">Kids Deal</span><span class="d-price">&pound;4.99</span></div>
+        <div class="deal-desc">Kids pizza, king burger or nuggets + chips + fruit shoot</div>
+        <div class="deal-item"><span class="d-name">Golden Box</span><span class="d-price">&pound;14.99</span></div>
+        <div class="deal-desc">Shawarma, crispy chicken, pakora, donner, sajj, chips, manqusha, dips, 2 drinks</div>
+        <div class="deal-item"><span class="d-name">Student 10% off</span><span class="d-price">over &pound;10</span></div>
+      </div>
+
+      <div class="cat-header" style="margin-top:2mm;">
+        <h3>Drinks</h3>
+        <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+      </div>
+      <div class="deal-item"><span class="d-name">Can</span><span class="d-price">&pound;1.20</span></div>
+      <div class="deal-desc">Irn Bru &middot; Pepsi &middot; Pepsi Max &middot; Coke &middot; Diet Coke &middot; Fanta &middot; Vimto &middot; Tango &middot; Limeade</div>
+      <div class="deal-item"><span class="d-name">Fruit Shoot</span><span class="d-price">&pound;1.00</span></div>
+      <div class="deal-item"><span class="d-name">Redbull</span><span class="d-price">&pound;1.50</span></div>
+      <div class="deal-item"><span class="d-name">Water</span><span class="d-price">&pound;1.00</span></div>
+      <div class="deal-item"><span class="d-name">1.5 Litre</span><span class="d-price">&pound;3.00</span></div>
+
+      <div class="cat-header" style="margin-top:2mm;">
+        <h3>Desserts</h3>
+        <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+      </div>
+      <div class="deal-item"><span class="d-name">Ferrero, Choc Mousse, Cheesecake &middot; slice / whole</span><span class="d-price">&pound;2.99 / &pound;24.99</span></div>
+      <div class="deal-item"><span class="d-name">Fruit Cake &middot; slice / whole</span><span class="d-price">&pound;2.99 / &pound;27.99</span></div>
+      <div class="deal-item"><span class="d-name">Milkshake (Choc, Strawberry, Coconut)</span><span class="d-price">&pound;5.99</span></div>
+      <div class="deal-desc" style="margin-top:1mm;">Ice cream available in store &middot; ask our team for flavours &amp; pricing</div>
+    </div>
+
+    <div class="back-footer">
+      <div class="back-contact-group">
+        <div class="back-phone">0141 378 0909</div>
+        <div class="back-platforms" style="font-size:8.5px;letter-spacing:0.08em;">07746 870341 &middot; WhatsApp or backup line</div>
+        <div class="back-platforms">Free delivery G31 &middot; &pound;3.99 outside G31 (up to 4 miles)</div>
+        <div class="back-platforms">Order at margheritapizzeria.co.uk &middot; Also on</div>
+        <div style="margin-top:1.5mm;">
+          <svg width="60" height="16" viewBox="0 0 290 78" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;opacity:0.7;">
+            <path d="M105.895 58.38h6.61l-1.095-5.128V22.68h-6.323v13.944c-1.902-2.204-4.518-3.497-7.607-3.497-6.324 0-11.22 5.222-11.22 12.89 0 7.667 4.896 12.89 11.22 12.89 3.138 0 5.847-1.342 7.75-3.643l.665 3.115v.001zm124.992-18.4c1.284 0 2.472.334 3.565 1.1l2.996-6.755c-1.38-.864-2.996-1.246-4.564-1.246-2.853 0-5.23 1.29-6.75 3.69l-.667-3.118h-6.514l1.046 4.84v19.885h6.32V42.613c.856-1.63 2.473-2.635 4.565-2.635v.002h.003zm18.54 12.266c-3.658 0-6.37-2.443-6.37-6.23 0-3.833 2.712-6.228 6.37-6.228 3.71 0 6.373 2.395 6.373 6.228 0 3.787-2.663 6.23-6.372 6.23h-.001zm-157.035-6.23c0-3.833 2.71-6.228 6.37-6.228 3.71 0 6.372 2.395 6.372 6.228 0 3.787-2.662 6.23-6.37 6.23-3.66 0-6.372-2.443-6.372-6.23zm185.04 6.23c-3.66 0-6.37-2.443-6.37-6.23 0-3.833 2.71-6.228 6.37-6.228 3.708 0 6.37 2.395 6.37 6.228 0 3.787-2.662 6.23-6.37 6.23zM127.86 39.404c3.28 0 5.42 1.533 6.085 4.36h-12.17c.713-2.827 2.852-4.36 6.084-4.36h.001zm75.64 0c3.282 0 5.422 1.533 6.087 4.36h-12.17c.713-2.827 2.852-4.36 6.084-4.36h-.001zM172.647 58.38h10.174l6.61-24.726h-6.894l-4.848 20.03-4.85-20.03h-6.8l6.61 24.725-.002.001zm-16.308 0h6.32V33.653h-6.32V58.38zm-27.51.458c3.52 0 6.99-.96 9.89-2.828l-2.424-5.462c-2.283 1.198-4.802 1.917-7.37 1.917-3.327 0-5.657-1.294-6.656-3.69h17.78c.19-.91.287-1.82.287-2.923 0-7.667-5.277-12.794-12.362-12.794-7.13 0-12.36 5.175-12.36 12.89 0 7.858 5.182 12.89 13.217 12.89h-.002zm161.107-12.822c0-7.667-5.325-12.89-12.504-12.89-7.18 0-12.504 5.223-12.504 12.89 0 7.668 5.324 12.89 12.503 12.89 7.18 0 12.504-5.222 12.504-12.89h.001zm-85.578 12.89c3.516 0 6.987-.958 9.89-2.827l-2.427-5.465c-2.282 1.198-4.802 1.916-7.37 1.916-3.327 0-5.657-1.292-6.656-3.69h17.782c.19-.91.284-1.82.284-2.922 0-7.667-5.278-12.794-12.362-12.794-7.13 0-12.36 5.174-12.36 12.89 0 7.858 5.183 12.89 13.218 12.89v.002h.001zm45.07 0c7.18 0 12.503-5.222 12.503-12.89 0-7.667-5.324-12.89-12.504-12.89s-12.504 5.223-12.504 12.89c0 7.668 5.325 12.89 12.503 12.89h.002zm-105.07-.527h6.322v-35.7h-6.323v35.7h.001zm15.165-28.13c2.234 0 3.946-1.726 3.946-4.026s-1.71-4.025-3.945-4.025c-2.282 0-3.994 1.725-3.994 4.025 0 2.3 1.713 4.025 3.995 4.025l-.002.001zM50.895.176l-3.62 34.262L41.1 5.552 21.74 9.646l6.172 28.884L0 44.43l4.93 23.073 49.084 10.374 11.225-25.072 5.342-50.57L50.893.175l.002.002V.176zm-15.51 49.703c-1.012.922-2.35.837-3.77.367-1.417-.468-2.047-2.173-1.51-4.234.4-1.53 2.283-1.76 3.225-1.776.358-.006.71.066 1.035.212.666.3 1.794.94 2.023 1.916.33 1.408.012 2.59-1 3.512h-.002v.002l-.001.001zm14.21 1.59c-.735 1.27-2.665 1.438-4.564.514-1.28-.624-1.27-2.212-1.13-3.18a2.992 2.992 0 0 1 .62-1.444c.457-.576 1.22-1.327 2.102-1.35 1.434-.038 2.668.602 3.365 1.76.7 1.154.35 2.427-.387 3.7h-.006z" fill-rule="nonzero" fill="#00CCBC"/>
+          </svg>
+        </div>
+      </div>
+      <div class="back-bottom">
+        <div class="back-fine-print">Please inform our team of any allergies before ordering.</div>
+        <div class="back-fine-print credit">Designed by AM:PM Media</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FRONT COVER (right half) -->
+  <div class="panel front-cover">
+    <div class="flag-stripe"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+
+    <!-- Front cover illustrations -->
+    <svg class="panel-illus illus-front-pizza" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="60" cy="60" r="55" stroke="#F0EBE0" stroke-width="1.5"/>
+      <circle cx="60" cy="60" r="48" stroke="#F0EBE0" stroke-width="0.4" stroke-dasharray="3 3"/>
+      <circle cx="42" cy="45" r="8" stroke="#F0EBE0" stroke-width="1"/>
+      <circle cx="72" cy="40" r="6" stroke="#F0EBE0" stroke-width="1"/>
+      <circle cx="55" cy="68" r="9" stroke="#F0EBE0" stroke-width="1"/>
+      <circle cx="78" cy="65" r="5" stroke="#F0EBE0" stroke-width="1"/>
+      <circle cx="45" cy="75" r="6" stroke="#F0EBE0" stroke-width="1"/>
+    </svg>
+    <svg class="panel-illus illus-front-wheat" viewBox="0 0 50 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M25 95 L25 15" stroke="#F0EBE0" stroke-width="1"/>
+      <ellipse cx="18" cy="25" rx="6" ry="10" stroke="#F0EBE0" stroke-width="0.8" transform="rotate(-15 18 25)"/>
+      <ellipse cx="32" cy="35" rx="6" ry="10" stroke="#F0EBE0" stroke-width="0.8" transform="rotate(15 32 35)"/>
+      <ellipse cx="18" cy="45" rx="6" ry="10" stroke="#F0EBE0" stroke-width="0.8" transform="rotate(-15 18 45)"/>
+      <ellipse cx="32" cy="55" rx="6" ry="10" stroke="#F0EBE0" stroke-width="0.8" transform="rotate(15 32 55)"/>
+      <ellipse cx="18" cy="65" rx="6" ry="10" stroke="#F0EBE0" stroke-width="0.8" transform="rotate(-15 18 65)"/>
+      <ellipse cx="32" cy="75" rx="6" ry="10" stroke="#F0EBE0" stroke-width="0.8" transform="rotate(15 32 75)"/>
+      <ellipse cx="25" cy="12" rx="5" ry="8" stroke="#F0EBE0" stroke-width="0.8"/>
+    </svg>
+    <svg class="panel-illus illus-front-olive" viewBox="0 0 50 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M25 5 L25 30" stroke="#F0EBE0" stroke-width="0.8"/>
+      <path d="M25 15 Q15 10 12 18" stroke="#F0EBE0" stroke-width="0.6" fill="none"/>
+      <path d="M25 15 Q35 10 38 18" stroke="#F0EBE0" stroke-width="0.6" fill="none"/>
+      <ellipse cx="25" cy="48" rx="14" ry="20" stroke="#F0EBE0" stroke-width="1.2"/>
+      <ellipse cx="25" cy="48" rx="6" ry="9" stroke="#F0EBE0" stroke-width="0.6"/>
+    </svg>
+
+    <div class="halal-badge">&rlm;&#1581;&#1604;&#1575;&#1604;</div>
+
+    <!-- Option 02: Compact crown logo -->
+    <!-- Logo: 90px wide = text width (146px) / φ. Height follows SVG aspect ratio -->
+    <svg width="90" height="46" viewBox="0 0 766 390" fill="none" style="margin-top:2.5mm;">
+      <path d="M603.674 93.2851L766 389.067H463.392L603.674 93.2851Z" fill="#C8392B"/>
+      <path d="M371.95 0L534.683 389.067H231.317L371.95 0Z" fill="#C8392B"/>
+      <path d="M140.633 93.2851L303.366 389.067H0L140.633 93.2851Z" fill="#C8392B"/>
+    </svg>
+
+    <div style="margin-top:2.5mm;">
+      <div class="front-tagline" style="margin-bottom:1.5mm;">Authentic Stone Baked</div>
+      <div class="front-logo">Margherita<span class="dot">.</span></div>
+      <div class="front-sub">Pizzeria</div>
+    </div>
+
+    <div style="margin-top:4mm;">
+      <div class="front-flag"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+    </div>
+
+    <div class="front-tagline" style="margin-top:2.5mm;">Sourdough &middot; Hand-Stretched &middot; Stone Oven</div>
+
+    <div class="front-desc" style="margin-top:2.5mm;">Pizza &middot; Grill &middot; Shawarma &middot; Burger</div>
+
+    <div class="front-addr">
+      652 Alexandra Parade, Dennistoun<br>
+      Glasgow G31 3BU
+      <strong>0141 378 0909 | 07746 870341</strong>
+    </div>
+    <div style="font-size:9px;color:#C9952A;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-top:2mm;">Free Delivery G31 &middot; &pound;3.99 Outside &middot; margheritapizzeria.co.uk</div>
+
+    <div class="front-hours">
+      <table class="hours-table">
+        <tr><td>Mon - Thu</td><td>11am - 11pm</td></tr>
+        <tr><td>Fri - Sat</td><td>11am - Midnight</td></tr>
+        <tr><td>Sunday</td><td>11am - 11pm</td></tr>
+      </table>
+    </div>
+
+    <!-- QR Code -->
+    <div style="margin-top:3mm;text-align:center;">
+      <img src="qr-code.png" alt="Scan to order at margheritapizzeria.co.uk" style="width:18mm;height:18mm;display:inline-block;" />
+      <div style="font-size:7px;color:#C9952A;letter-spacing:1.5px;text-transform:uppercase;margin-top:1mm;font-weight:500;">Scan to Order</div>
+    </div>
+
+    <!-- Social media -->
+    <div style="margin-top:2.5mm;display:flex;gap:4mm;align-items:center;justify-content:center;">
+      <!-- Instagram -->
+      <div style="display:flex;align-items:center;gap:1.5mm;">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="#8D8983"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        <span style="font-size:7px;color:#8D8983;letter-spacing:0.5px;">@margherita.pizzaria1</span>
+      </div>
+      <!-- TikTok -->
+      <div style="display:flex;align-items:center;gap:1.5mm;">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="#8D8983"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.73a8.19 8.19 0 004.76 1.52v-3.4a4.85 4.85 0 01-1-.16z"/></svg>
+        <span style="font-size:7px;color:#8D8983;letter-spacing:0.5px;">@margherita.pizzaria1</span>
+      </div>
+      <!-- Facebook -->
+      <div style="display:flex;align-items:center;gap:1.5mm;">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="#8D8983"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        <span style="font-size:7px;color:#8D8983;letter-spacing:0.5px;">Margherita Pizzeria</span>
+      </div>
+    </div>
+
+    <!-- Allergen statement -->
+    <div style="margin-top:2.5mm;font-size:8px;color:#555250;line-height:1.618;text-align:center;font-style:italic;">
+      Our dishes contain or may come into contact with gluten, dairy, eggs, fish, sesame, nuts and soya.<br>Please inform our team of any allergies before ordering.
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════ PAGE 2: INSIDE (Pizzas | Kitchen) ════════════════════ -->
+<div class="page">
+
+  <!-- INSIDE LEFT: Pizzas -->
+  <div class="panel pizza-panel">
+    <div class="flag-stripe"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+
+    <!-- Pizza illustrations -->
+    <svg class="panel-illus illus-pizza-lg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="90" stroke="#F0EBE0" stroke-width="2"/>
+      <circle cx="100" cy="100" r="80" stroke="#F0EBE0" stroke-width="0.5" stroke-dasharray="4 3"/>
+      <circle cx="70" cy="75" r="12" stroke="#F0EBE0" stroke-width="1.5"/>
+      <circle cx="120" cy="65" r="10" stroke="#F0EBE0" stroke-width="1.5"/>
+      <circle cx="100" cy="110" r="14" stroke="#F0EBE0" stroke-width="1.5"/>
+      <circle cx="135" cy="115" r="8" stroke="#F0EBE0" stroke-width="1.5"/>
+      <circle cx="75" cy="125" r="10" stroke="#F0EBE0" stroke-width="1.5"/>
+      <circle cx="110" cy="80" r="6" stroke="#F0EBE0" stroke-width="1"/>
+      <line x1="100" y1="10" x2="100" y2="190" stroke="#F0EBE0" stroke-width="0.3" stroke-dasharray="2 4"/>
+      <line x1="10" y1="100" x2="190" y2="100" stroke="#F0EBE0" stroke-width="0.3" stroke-dasharray="2 4"/>
+    </svg>
+    <svg class="panel-illus illus-slice" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 0 L95 110 Q50 120 5 110 Z" stroke="#F0EBE0" stroke-width="1.5" fill="none"/>
+      <circle cx="40" cy="50" r="8" stroke="#F0EBE0" stroke-width="1"/>
+      <circle cx="60" cy="65" r="6" stroke="#F0EBE0" stroke-width="1"/>
+      <circle cx="50" cy="85" r="7" stroke="#F0EBE0" stroke-width="1"/>
+      <path d="M20 105 Q50 115 80 105" stroke="#F0EBE0" stroke-width="1" fill="none"/>
+    </svg>
+    <svg class="panel-illus illus-basil" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M40 70 Q20 50 25 30 Q30 10 40 5 Q50 10 55 30 Q60 50 40 70Z" stroke="#F0EBE0" stroke-width="1.2" fill="none"/>
+      <path d="M40 65 L40 15" stroke="#F0EBE0" stroke-width="0.8"/>
+      <path d="M40 30 Q30 25 28 35" stroke="#F0EBE0" stroke-width="0.6" fill="none"/>
+      <path d="M40 40 Q50 35 52 45" stroke="#F0EBE0" stroke-width="0.6" fill="none"/>
+      <path d="M40 50 Q32 47 30 55" stroke="#F0EBE0" stroke-width="0.6" fill="none"/>
+    </svg>
+
+    <!-- Extra pizza illustrations -->
+    <svg class="panel-illus illus-tomato" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="30" cy="32" r="22" stroke="#F0EBE0" stroke-width="1.2"/>
+      <path d="M22 15 Q26 8 30 12 Q34 8 38 15" stroke="#F0EBE0" stroke-width="0.8" fill="none"/>
+      <path d="M30 12 L30 8" stroke="#F0EBE0" stroke-width="0.6"/>
+      <path d="M30 32 Q22 28 20 32 Q22 36 30 32" stroke="#F0EBE0" stroke-width="0.4" fill="none"/>
+      <path d="M30 32 Q38 28 40 32 Q38 36 30 32" stroke="#F0EBE0" stroke-width="0.4" fill="none"/>
+    </svg>
+    <svg class="panel-illus illus-pepper" viewBox="0 0 30 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 5 Q8 15 8 30 Q8 55 15 65 Q22 55 22 30 Q22 15 15 5Z" stroke="#F0EBE0" stroke-width="1" fill="none"/>
+      <path d="M15 5 L15 0" stroke="#F0EBE0" stroke-width="0.8"/>
+      <path d="M15 5 Q12 3 10 5" stroke="#F0EBE0" stroke-width="0.6" fill="none"/>
+      <path d="M15 20 Q12 18 11 22" stroke="#F0EBE0" stroke-width="0.4" fill="none"/>
+      <path d="M15 35 Q18 33 19 37" stroke="#F0EBE0" stroke-width="0.4" fill="none"/>
+    </svg>
+
+    <!-- Logo watermark, bottom-right corner -->
+    <svg class="panel-illus" style="bottom:8mm;right:8mm;width:30mm;height:15mm;opacity:0.025;" viewBox="0 0 766 390" fill="none">
+      <path d="M603.674 93.2851L766 389.067H463.392L603.674 93.2851Z" fill="#F0EBE0"/>
+      <path d="M371.95 0L534.683 389.067H231.317L371.95 0Z" fill="#F0EBE0"/>
+      <path d="M140.633 93.2851L303.366 389.067H0L140.633 93.2851Z" fill="#F0EBE0"/>
+    </svg>
+
+    <div class="pizza-content">
+    <div class="panel-header">
+      <h2>Stone Baked Pizza</h2>
+    </div>
+
+    <table class="menu-table">
+      <thead><tr><th></th><th>12"</th><th>16"</th></tr></thead>
+      <tbody>
+        <tr><td>Margherita<span class="v-badge">V</span><span class="desc">Fresh mozzarella, parmesan, fresh basil</span></td><td>&pound;11</td><td>&pound;17</td></tr>
+        <tr><td>Pepperoni<span class="desc">Pepperoni, cherry tomato, mozzarella</span></td><td>&pound;11</td><td>&pound;18</td></tr>
+        <tr><td>Bolognese<span class="desc">Bolognese mince, green pepper, onion, mozzarella</span></td><td>&pound;12</td><td>&pound;19</td></tr>
+        <tr><td>Vegetarian<span class="v-badge">V</span><span class="desc">Red onion, black olive, green pepper, mushroom, egg plant, mozzarella</span></td><td>&pound;11</td><td>&pound;18</td></tr>
+        <tr><td>Vesuvio<span class="desc">A Swedish classic. Ham, mozzarella, olive oil, oregano</span></td><td>&pound;11</td><td>&pound;18</td></tr>
+        <tr><td>Hawaiian<span class="desc">Pineapple, ham, mozzarella</span></td><td>&pound;11</td><td>&pound;19</td></tr>
+        <tr><td>Donner Kebab<span class="desc">Donner, mixed salad, garlic sauce, mozzarella</span></td><td>&pound;12</td><td>&pound;18</td></tr>
+        <tr><td>Calzone<span class="desc">1 meat + 2 veg, mozzarella, choose your filling (12" only)</span></td><td>&pound;13</td><td>-</td></tr>
+        <tr><td>Altono<span class="desc">Red onion, tuna, mozzarella, black olive, basil</span></td><td>&pound;12</td><td>&pound;19</td></tr>
+        <tr><td>Capricciosa<span class="desc">Ham, mushroom, mozzarella</span></td><td>&pound;11</td><td>&pound;19</td></tr>
+        <tr><td>Mexican<span class="desc">Fresh mince, green pepper, onion, green chilli, mozzarella</span></td><td>&pound;12</td><td>&pound;19</td></tr>
+      </tbody>
+    </table>
+
+    <table class="menu-table" style="margin-top:2mm;">
+      <thead><tr><th style="text-align:left;color:#C9952A;font-family:'Playfair Display',serif;font-size:12px;font-weight:700;">Chef&apos;s Selection</th><th>12"</th><th>16"</th></tr></thead>
+      <tbody>
+        <tr><td>Four Seasons<span class="desc">Pepperoni, bolognese, ham and mushroom, spicy chicken, mozzarella</span></td><td>&pound;12</td><td>&pound;18</td></tr>
+        <tr><td>Spicy Chicken<span class="desc">Grilled chicken, mozzarella, green pepper, red onion</span></td><td>&pound;12</td><td>&pound;18</td></tr>
+        <tr><td>Marinara<span class="desc">Prawns, half lemon, fresh garlic, parmesan</span></td><td>&pound;13</td><td>&pound;20</td></tr>
+        <tr><td>Napoli<span class="v-badge">V</span><span class="desc">Buffalo mozzarella, cherry tomato, parmesan, fresh basil</span></td><td>&pound;12</td><td>&pound;20</td></tr>
+        <tr><td>Pesto Pizza<span class="v-badge">V</span><span class="desc">Feta, green pesto, black olive, parmesan (no tomato sauce)</span></td><td>&pound;12</td><td>&pound;19</td></tr>
+        <tr><td>Four Cheese<span class="v-badge">V</span><span class="desc">Feta, gorgonzola, parmesan, mozzarella (no tomato sauce)</span></td><td>&pound;13</td><td>&pound;20</td></tr>
+        <tr><td>Stuffed Crust Special<span class="desc">Black olive, green pepper, mushroom, mozzarella</span></td><td>&pound;15</td><td>&pound;23</td></tr>
+        <tr><td>Sausage Pizza<span class="desc">Savoury sausage, red onion, green pepper, zucchini, mozzarella (no tomato sauce). + chips/salad</span></td><td>&pound;12</td><td>&pound;19</td></tr>
+        <tr><td>King Crown BBQ Chicken<span class="desc">BBQ chicken, mozzarella, sourdough crown dome. + chips/salad (12" only)</span></td><td>&pound;15</td><td>-</td></tr>
+        <tr><td>Egg Pizza<span class="v-badge">V</span><span class="desc">Two eggs, sea salt, pepper, parmesan, mozzarella. + chips/salad (12" only)</span></td><td>&pound;12</td><td>-</td></tr>
+        <tr><td>Seafood Pizza<span class="desc">Shrimp, calamari, anchovies, mussels, rocket, dill, mozzarella (12" only)</span></td><td>&pound;17</td><td>-</td></tr>
+        <tr><td>Glasgow Pizza<span class="v-badge">V</span><span class="desc">Half pasta white sauce, half double cheese (12" only)</span></td><td>&pound;15</td><td>-</td></tr>
+        <tr><td>Philadelphia<span class="v-badge">V</span><span class="desc">Soya sauce, mushroom, green pepper, mozzarella</span></td><td>&pound;11</td><td>&pound;19</td></tr>
+        <tr><td>Syrian<span class="desc">Chicken curry, mushroom, sweetcorn, green pepper, tomato base sauce, mozzarella</span></td><td>&pound;12</td><td>&pound;19</td></tr>
+      </tbody>
+    </table>
+
+    <p class="note-line">Sourdough base (24hr rise), fresh basil, oregano, olive oil. Stuffed crust 12" +&pound;2 &middot; 16" +&pound;5. GF +&pound;2. <span class="v-badge" style="display:inline-flex;">V</span> Vegetarian. Free delivery G31 &middot; &pound;3.99 outside G31 (up to 4 miles) &middot; Deliveroo charges may vary.</p>
+    </div><!-- /pizza-content -->
+  </div>
+
+  <!-- INSIDE RIGHT: Kitchen -->
+  <div class="panel inside-right">
+    <div class="flag-stripe"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+
+    <!-- Kitchen illustrations -->
+    <svg class="panel-illus illus-kebab" viewBox="0 0 40 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="20" y1="5" x2="20" y2="115" stroke="#F0EBE0" stroke-width="2" stroke-linecap="round"/>
+      <rect x="12" y="20" width="16" height="12" rx="3" stroke="#F0EBE0" stroke-width="1"/>
+      <rect x="12" y="36" width="16" height="10" rx="3" stroke="#F0EBE0" stroke-width="1"/>
+      <rect x="12" y="50" width="16" height="12" rx="3" stroke="#F0EBE0" stroke-width="1"/>
+      <rect x="12" y="66" width="16" height="10" rx="3" stroke="#F0EBE0" stroke-width="1"/>
+      <rect x="12" y="80" width="16" height="12" rx="3" stroke="#F0EBE0" stroke-width="1"/>
+      <circle cx="20" cy="10" r="4" stroke="#F0EBE0" stroke-width="1"/>
+    </svg>
+    <svg class="panel-illus illus-wrap" viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 5 L45 5 L50 75 Q30 80 10 75 Z" stroke="#F0EBE0" stroke-width="1.2" fill="none"/>
+      <path d="M15 5 Q30 12 45 5" stroke="#F0EBE0" stroke-width="0.8" fill="none"/>
+      <circle cx="25" cy="30" r="4" stroke="#F0EBE0" stroke-width="0.6"/>
+      <circle cx="35" cy="40" r="3" stroke="#F0EBE0" stroke-width="0.6"/>
+      <circle cx="28" cy="50" r="5" stroke="#F0EBE0" stroke-width="0.6"/>
+      <path d="M20 60 Q30 55 40 60" stroke="#F0EBE0" stroke-width="0.5" fill="none"/>
+    </svg>
+
+    <!-- Extra kitchen illustrations -->
+    <svg class="panel-illus illus-fork-knife" viewBox="0 0 40 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="12" y1="5" x2="12" y2="85" stroke="#F0EBE0" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M8 5 L8 25 Q8 32 12 32" stroke="#F0EBE0" stroke-width="0.8" fill="none"/>
+      <path d="M16 5 L16 25 Q16 32 12 32" stroke="#F0EBE0" stroke-width="0.8" fill="none"/>
+      <line x1="12" y1="5" x2="12" y2="25" stroke="#F0EBE0" stroke-width="0.6"/>
+      <line x1="28" y1="5" x2="28" y2="85" stroke="#F0EBE0" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M22 5 Q22 22 28 25 Q34 22 34 5" stroke="#F0EBE0" stroke-width="0.8" fill="none"/>
+    </svg>
+    <svg class="panel-illus illus-chilli" viewBox="0 0 25 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 8 Q5 18 5 30 Q5 50 12 55 Q16 50 16 30 Q16 18 12 8Z" stroke="#F0EBE0" stroke-width="1" fill="none"/>
+      <path d="M12 8 Q10 4 12 2 Q14 4 12 8" stroke="#F0EBE0" stroke-width="0.6" fill="none"/>
+      <path d="M12 2 L13 0" stroke="#F0EBE0" stroke-width="0.5"/>
+    </svg>
+
+    <!-- Logo watermark, bottom-left corner -->
+    <svg class="panel-illus" style="bottom:8mm;left:8mm;width:30mm;height:15mm;opacity:0.025;" viewBox="0 0 766 390" fill="none">
+      <path d="M603.674 93.2851L766 389.067H463.392L603.674 93.2851Z" fill="#F0EBE0"/>
+      <path d="M371.95 0L534.683 389.067H231.317L371.95 0Z" fill="#F0EBE0"/>
+      <path d="M140.633 93.2851L303.366 389.067H0L140.633 93.2851Z" fill="#F0EBE0"/>
+    </svg>
+
+    <div class="panel-header">
+      <h2>Kitchen</h2>
+    </div>
+
+    <div class="cols">
+
+      <div class="break-avoid">
+        <div class="cat-header first">
+          <h3>Kitchen Specials</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">Served with chips, salad &amp; sauce</div>
+        <div class="item-row"><span class="item-name">Kebab Doner Box</span><span class="item-price">R &pound;5.50 / L &pound;7.50</span></div>
+        <div class="item-row"><span class="item-name">Crispy Chicken Plate</span><span class="item-price">R &pound;7.99 / L &pound;14.99</span></div>
+        <div class="item-row"><span class="item-name">Shawarma Chicken Plate</span><span class="item-price">&pound;9.99</span></div>
+        <div class="item-row"><span class="item-name">Falafel Plate<span class="v-badge">V</span></span><span class="item-price">&pound;9.99</span></div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Pasta</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="item-row"><span class="item-name">Chicken Alfredo Pasta</span><span class="item-price">&pound;11.99</span></div>
+        <div class="item-desc">White sauce, mushroom, green pepper, chicken, onion, parmesan</div>
+        <div class="item-row"><span class="item-name">Penne all&apos;Arrabbiata<span class="v-badge">V</span></span><span class="item-price">&pound;9.99</span></div>
+        <div class="item-desc">Garlic, onion, black olive, tomato sauce, cheese, green chilli</div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>King Smashburgers</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">All served with chips &amp; cheddar cheese</div>
+        <div class="item-row"><span class="item-name">King Smashburger</span><span class="item-price">&pound;7.50</span></div>
+        <div class="item-row"><span class="item-name">King Smashburger Double</span><span class="item-price">&pound;9.99</span></div>
+        <div class="item-desc">Double patty, salad, sauce</div>
+        <div class="item-row"><span class="item-name">Chicken Burger</span><span class="item-price">&pound;7.50</span></div>
+        <div class="item-row"><span class="item-name">Halloumi Burger<span class="v-badge">V</span></span><span class="item-price">&pound;7.50</span></div>
+        <div class="item-row"><span class="item-name">Vegetarian Burger<span class="v-badge">V</span></span><span class="item-price">&pound;7.50</span></div>
+        <div class="item-row"><span class="item-name">Plain Smashburger</span><span class="item-price">&pound;5.50</span></div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Wraps</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">All &pound;6.99 &middot; salad &amp; sauce &middot; add a can for &pound;1 extra</div>
+        <div class="item-row"><span class="item-name">Chicken Shawarma Wrap</span><span class="item-price">&pound;6.99</span></div>
+        <div class="item-row"><span class="item-name">Crispy Chicken Wrap</span><span class="item-price">&pound;6.99</span></div>
+        <div class="item-row"><span class="item-name">Lamb Kebab Wrap</span><span class="item-price">&pound;6.99</span></div>
+        <div class="item-row"><span class="item-name">Chicken Tikka Wrap</span><span class="item-price">&pound;6.99</span></div>
+        <div class="item-row"><span class="item-name">Falafel Wrap<span class="v-badge">V</span></span><span class="item-price">&pound;6.99</span></div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Hoagies</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">All &pound;8.99 &middot; cheese, chips, salad &amp; sauce &middot; add a can for &pound;1 extra</div>
+        <div class="item-row"><span class="item-name">Chicken Shawarma Hoagie</span><span class="item-price">&pound;8.99</span></div>
+        <div class="item-row"><span class="item-name">Donner Kebab Hoagie</span><span class="item-price">&pound;8.99</span></div>
+        <div class="item-row"><span class="item-name">Lamb Kebab Hoagie</span><span class="item-price">&pound;8.99</span></div>
+        <div class="item-row"><span class="item-name">Crispy Chicken Hoagie</span><span class="item-price">&pound;8.99</span></div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Homemade Chicken</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">All served with chips or rice, salad &amp; sauce</div>
+        <div class="item-row"><span class="item-name">Peri Peri Chicken Full</span><span class="item-price">&pound;11.99</span></div>
+        <div class="item-row"><span class="item-name">Peri Peri Chicken Half</span><span class="item-price">&pound;7.99</span></div>
+        <div class="item-row"><span class="item-name">Broasted Chicken Full</span><span class="item-price">&pound;14.99</span></div>
+        <div class="item-row"><span class="item-name">Broasted Chicken Half</span><span class="item-price">&pound;8.99</span></div>
+        <div class="item-row"><span class="item-name">Spicy Broasted Full</span><span class="item-price">&pound;15.99</span></div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Grill Kebab</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">Chips or rice, salad &amp; sauce</div>
+        <div class="item-row"><span class="item-name">Chicken Shish Tikka</span><span class="item-price">&pound;9.50</span></div>
+        <div class="item-row"><span class="item-name">Lamb Koobideh Kebab</span><span class="item-price">R &pound;7.49 / L &pound;10.49</span></div>
+        <div class="item-row"><span class="item-name">Afghani Tikka</span><span class="item-price">R &pound;7.99 / L &pound;11.99</span></div>
+        <div class="item-desc">5pcs / 10pcs</div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Naan &amp; Manqusha</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">All &pound;3.00</div>
+        <div class="item-row"><span class="item-name">Zaatar (Thyme)</span><span class="item-price">&pound;3.00</span></div>
+        <div class="item-row"><span class="item-name">Mohamara</span><span class="item-price">&pound;3.00</span></div>
+        <div class="item-row"><span class="item-name">Lahma</span><span class="item-price">&pound;3.00</span></div>
+        <div class="item-row"><span class="item-name">Mortadella + Cheese</span><span class="item-price">&pound;3.00</span></div>
+        <div class="item-row"><span class="item-name">Mohamara + Cheese</span><span class="item-price">&pound;3.00</span></div>
+        <div class="item-row"><span class="item-name">Garlic Naan</span><span class="item-price">&pound;3.00</span></div>
+        <div class="item-row"><span class="item-name">Chilli Naan</span><span class="item-price">&pound;3.00</span></div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Loaded Fries</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">Cheddar cheese sauce, jalape&ntilde;o &amp; dry onion</div>
+        <div class="item-row"><span class="item-name">Crispy Chicken Loaded Fries</span><span class="item-price">&pound;6.99</span></div>
+        <div class="item-row"><span class="item-name">Bolognese Loaded Fries</span><span class="item-price">&pound;6.99</span></div>
+        <div class="item-row"><span class="item-name">Chicken Shawarma Fries</span><span class="item-price">&pound;6.99</span></div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Mixed Grill</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">All served with grill onion &amp; green pepper</div>
+        <div class="item-row"><span class="item-name">Mix Grill 01</span><span class="item-price">&pound;13.99</span></div>
+        <div class="item-desc">1 skewer of each: Shish Tikka, Lamb Koobideh, Donner or Shawarma. Chips or rice</div>
+        <div class="item-row"><span class="item-name">Mix Grill 02</span><span class="item-price">&pound;17.99</span></div>
+        <div class="item-desc">+ 5 Chicken BBQ Wings, Donner or Shawarma. Chips or rice</div>
+        <div class="item-row"><span class="item-name">Mix Grill 03</span><span class="item-price">&pound;29.99</span></div>
+        <div class="item-desc">2&times; Shish Tikka, 2&times; Lamb Koobideh, Wings, Donner or Shawarma. 1.5L cola included</div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Sides</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="item-row"><span class="item-name">Chips</span><span class="item-price">R &pound;3.99 / L &pound;4.99</span></div>
+        <div class="item-row"><span class="item-name">Chips &amp; Cheese</span><span class="item-price">&pound;5.99</span></div>
+        <div class="item-row"><span class="item-name">Onion Rings</span><span class="item-price">R &pound;2.99 / L &pound;5.99</span></div>
+        <div class="item-desc">S 5pcs / L 10pcs</div>
+        <div class="item-row"><span class="item-name">Chilli Cheese</span><span class="item-price">&pound;4.99</span></div>
+        <div class="item-row"><span class="item-name">Mozzarella Sticks</span><span class="item-price">&pound;4.99</span></div>
+        <div class="item-desc">6 pieces</div>
+        <div class="item-row"><span class="item-name">Chicken Nuggets</span><span class="item-price">&pound;5.99</span></div>
+        <div class="item-desc">6 pieces</div>
+        <div class="item-row"><span class="item-name">BBQ Wings</span><span class="item-price">R &pound;5.99 / L &pound;9.99</span></div>
+        <div class="item-row"><span class="item-name">Falafel<span class="v-badge">V</span></span><span class="item-price">R &pound;5.99 / L &pound;9.99</span></div>
+      </div>
+
+      <div class="break-avoid">
+        <div class="cat-header">
+          <h3>Dips</h3>
+          <div class="flag-inline"><span class="g"></span><span class="w"></span><span class="r"></span></div>
+        </div>
+        <div class="cat-sub">50p each</div>
+        <div class="item-row"><span class="item-name">Garlic Mayo &middot; Sweet Chilli &middot; American</span><span class="item-price">50p</span></div>
+        <div class="item-row"><span class="item-name">BBQ &middot; Mild Sauce &middot; Ketchup</span><span class="item-price">50p</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
