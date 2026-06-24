@@ -13,7 +13,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-import type { OrderItemSnapshot } from "@/types/database";
+import type { OrderAttributionSnapshot, OrderItemSnapshot } from "@/types/database";
 
 /* ─────────────────────────── Enums ─────────────────────────── */
 
@@ -118,7 +118,9 @@ export const orders = pgTable("orders", {
   discountPence: integer("discount_pence").notNull().default(0),
   totalPence: integer("total_pence").notNull(),
   paymentMethod: paymentMethodEnum("payment_method").notNull(),
+  idempotencyKey: text("idempotency_key").unique(),
   stripeSessionId: text("stripe_session_id").unique(),
+  attribution: jsonb("attribution").$type<OrderAttributionSnapshot | null>(),
   estimatedTime: text("estimated_time"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

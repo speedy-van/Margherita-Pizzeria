@@ -10,7 +10,7 @@ import {
 } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CollectionSlotStep } from "@/components/order/CollectionSlotStep";
 import {
@@ -30,6 +30,7 @@ import { OrderModeToggle } from "@/components/order/OrderModeToggle";
 import { OrderSubmitBar } from "@/components/order/OrderSubmitBar";
 import { OrderTotalSummary } from "@/components/order/OrderTotalSummary";
 import { PaymentMethodStep } from "@/components/order/PaymentMethodStep";
+import { getStoredOrderAttribution } from "@/lib/analytics/ad-attribution";
 import { homeContent } from "@/lib/content/home";
 import { useMenuCart } from "@/hooks/useMenuCart";
 import type {
@@ -39,6 +40,12 @@ import type {
   OrderMode,
   PaymentMethod,
 } from "@/lib/orders/types";
+import {
+  computeShopStatus,
+  formatClosedMessage,
+  type ShopStatus,
+} from "@/lib/utils/shop-hours";
+import type { OpeningHours } from "@/types/database";
 
 export interface OrderPageClientProps {
   initialSettings: {
@@ -46,6 +53,8 @@ export interface OrderPageClientProps {
     deliveryFeePence: number;
   };
   collectionSlots: CollectionSlotOption[];
+  openingHours: OpeningHours;
+  initialShopStatus: ShopStatus;
 }
 
 interface SubmissionState {
@@ -60,9 +69,18 @@ const INITIAL_SUBMIT_STATE: SubmissionState = {
   serverFieldErrors: null,
 };
 
+function createOrderAttemptKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function OrderPageClient({
   initialSettings,
   collectionSlots,
+  openingHours,
+  initialShopStatus,
 }: OrderPageClientProps) {
   const router = useRouter();
   const search = useSearchParams();
@@ -71,6 +89,15 @@ export function OrderPageClient({
     search.get("mode") === "collection" ? "collection" : "delivery";
 
   const cart = useMenuCart();
+  const [shopStatus, setShopStatus] = useState<ShopStatus>(initialShopStatus);
+
+  useEffect(() => {
+    const tick = () => setShopStatus(computeShopStatus(new Date(), openingHours));
+    tick();
+    const id = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(id);
+  }, [openingHours]);
+
   const [mode, setMode] = useState<OrderMode>(initialMode);
   const [addressText, setAddressText] = useState("");
   const [validated, setValidated] = useState<ValidatedAddress | null>(null);
@@ -82,7 +109,10 @@ export function OrderPageClient({
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe_card");
   const [discount, setDiscount] = useState<AppliedDiscount | null>(null);
+  const [addressPendingReason, setAddressPendingReason] = useState<string | null>(null);
   const [submitState, setSubmitState] = useState<SubmissionState>(INITIAL_SUBMIT_STATE);
+  const submitLockedRef = useRef(false);
+  const orderAttemptKeyRef = useRef<string | null>(null);
 
   const customerErrors = submitState.serverFieldErrors
     ? {
@@ -136,12 +166,16 @@ export function OrderPageClient({
   ]);
 
   const disabledReason = useMemo(() => {
+    if (!shopStatus.isOpen) return formatClosedMessage(shopStatus);
     if (cart.items.length === 0) return "Your cart is empty.";
     if (!customer.name.trim()) return "Add your name to continue.";
     if (!customer.email.trim()) return "Add your email to continue.";
     if (!customer.phone.trim()) return "Add your phone number to continue.";
     if (mode === "delivery") {
-      if (!validated) return "Check your delivery address first.";
+      if (!validated) {
+        if (addressPendingReason) return addressPendingReason;
+        return "Check your delivery address first.";
+      }
       if (!validated.withinRadius) return "Address is outside the delivery zone.";
       if (deliveryBelowMin) return "Cart subtotal is below the minimum delivery order.";
     } else if (!collectionTime) {
@@ -157,13 +191,30 @@ export function OrderPageClient({
     validated,
     deliveryBelowMin,
     collectionTime,
+    addressPendingReason,
+    shopStatus,
   ]);
 
   const handleSubmit = useCallback(async () => {
-    if (submitState.loading) return;
+    if (submitLockedRef.current || submitState.loading) return;
+    if (!shopStatus.isOpen) {
+      setSubmitState({
+        loading: false,
+        serverError: formatClosedMessage(shopStatus),
+        serverFieldErrors: null,
+      });
+      return;
+    }
+    submitLockedRef.current = true;
     setSubmitState({ loading: true, serverError: null, serverFieldErrors: null });
 
+    const idempotencyKey =
+      orderAttemptKeyRef.current ?? createOrderAttemptKey();
+    orderAttemptKeyRef.current = idempotencyKey;
+    const attribution = getStoredOrderAttribution();
+
     const payload: CreateOrderInput = {
+      idempotencyKey,
       type: mode,
       customerName: customer.name.trim(),
       customerEmail: customer.email.trim(),
@@ -184,16 +235,21 @@ export function OrderPageClient({
         ? { collectionTime: collectionTime || "asap" }
         : {}),
       ...(discount ? { discountCode: discount.code } : {}),
+      ...(attribution ? { attribution } : {}),
     };
 
     try {
       const res = await fetch("/api/orders/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify(payload),
       });
       const json = (await res.json()) as CreateOrderResponse;
       if (!json.ok) {
+        submitLockedRef.current = false;
         setSubmitState({
           loading: false,
           serverError: json.error.message,
@@ -209,8 +265,10 @@ export function OrderPageClient({
       }
 
       cart.clear();
+      orderAttemptKeyRef.current = null;
       router.push(json.data.redirectUrl as `/order/success?orderId=${string}`);
     } catch {
+      submitLockedRef.current = false;
       setSubmitState({
         loading: false,
         serverError: "Network problem — please try again.",
@@ -229,6 +287,7 @@ export function OrderPageClient({
     submitState.loading,
     validated,
     discount,
+    shopStatus,
   ]);
 
   if (!cart.isHydrated) {
@@ -246,9 +305,45 @@ export function OrderPageClient({
   const submitLabel =
     paymentMethod === "stripe_card" ? "Pay with card" : "Place order";
 
+  // Determine which step is the "active" one for the radar pulse. Steps are
+  // sequential; the active step is the first one the user hasn't completed.
+  // Once everything is done, no card pulses.
+  const step2Done =
+    mode === "delivery"
+      ? Boolean(validated && validated.withinRadius) && !deliveryBelowMin
+      : Boolean(collectionTime);
+  const step3Done = Boolean(
+    customer.name.trim() && customer.email.trim() && customer.phone.trim(),
+  );
+  const activeStep: 2 | 3 | 4 | null = !step2Done
+    ? 2
+    : !step3Done
+      ? 3
+      : 4;
+
   return (
     <SimpleGrid columns={{ base: 1, lg: 12 }} gap={{ base: 6, lg: 8 }}>
       <Stack gap={6} gridColumn={{ base: "auto", lg: "span 7" }}>
+        {!shopStatus.isOpen ? (
+          <Box
+            role="alert"
+            borderWidth="1px"
+            borderColor="red.500"
+            bg="red.50"
+            color="red.900"
+            borderRadius="md"
+            padding={4}
+          >
+            <Text fontWeight="semibold" fontSize="md">
+              We&rsquo;re closed for online ordering right now.
+            </Text>
+            <Text fontSize="sm" mt={1}>
+              {shopStatus.opensAt && shopStatus.opensDayLabel
+                ? `Online ordering reopens ${shopStatus.opensDayLabel} at ${shopStatus.opensAt}. You can still browse the menu and prepare your cart — checkout will unlock automatically.`
+                : "Please check back during our opening hours."}
+            </Text>
+          </Box>
+        ) : null}
         {cancelled ? (
           <Box
             role="status"
@@ -264,12 +359,12 @@ export function OrderPageClient({
           </Box>
         ) : null}
 
-        <Section title="1. Delivery or collection">
+        <Section title="1. Delivery or collection" active={false}>
           <OrderModeToggle mode={mode} onChange={setMode} disabled={submitState.loading} />
         </Section>
 
         {mode === "delivery" ? (
-          <Section title="2. Delivery address">
+          <Section title="2. Delivery address" active={activeStep === 2}>
             <DeliveryAddressStep
               address={addressText}
               onAddressChange={setAddressText}
@@ -277,10 +372,11 @@ export function OrderPageClient({
               onValidated={setValidated}
               externalError={submitState.serverFieldErrors?.deliveryAddress}
               onSwitchToCollection={() => setMode("collection")}
+              onPendingReason={setAddressPendingReason}
             />
           </Section>
         ) : (
-          <Section title="2. Collection time">
+          <Section title="2. Collection time" active={activeStep === 2}>
             <CollectionSlotStep
               slots={collectionSlots}
               value={collectionTime}
@@ -289,7 +385,7 @@ export function OrderPageClient({
           </Section>
         )}
 
-        <Section title="3. Your details">
+        <Section title="3. Your details" active={activeStep === 3}>
           <CustomerDetailsStep
             value={customer}
             onChange={setCustomer}
@@ -297,7 +393,7 @@ export function OrderPageClient({
           />
         </Section>
 
-        <Section title="4. Payment">
+        <Section title="4. Payment" active={activeStep === 4}>
           <PaymentMethodStep
             value={paymentMethod}
             onChange={setPaymentMethod}
@@ -352,18 +448,85 @@ export function OrderPageClient({
 
 function Section({
   title,
+  active,
   children,
 }: {
   title: string;
+  active: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <Stack gap={3}>
-      <Heading as="h2" size="sm" color="fg.default">
-        {title}
-      </Heading>
-      {children}
-    </Stack>
+    <Box
+      position="relative"
+      borderWidth="1px"
+      borderColor={active ? "brand.solid" : "border"}
+      borderRadius="lg"
+      bg="bg.subtle"
+      paddingBlock={{ base: 4, md: 5 }}
+      paddingInline={{ base: 4, md: 5 }}
+      transition="border-color 200ms ease"
+    >
+      {active ? <RadarPulse /> : null}
+      <Stack gap={3} position="relative">
+        <Heading as="h2" size="sm" color="fg.default">
+          {title}
+        </Heading>
+        {children}
+      </Stack>
+    </Box>
+  );
+}
+
+function RadarPulse() {
+  return (
+    <>
+      <style>{`
+        @keyframes mp-radar-pulse {
+          0% {
+            opacity: 0.55;
+            transform: scale(1);
+          }
+          80% {
+            opacity: 0;
+            transform: scale(1.04);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(1.04);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .mp-radar-ring { animation: none !important; opacity: 0.4; }
+        }
+      `}</style>
+      <Box
+        className="mp-radar-ring"
+        aria-hidden="true"
+        position="absolute"
+        inset={0}
+        borderRadius="lg"
+        borderWidth="2px"
+        borderColor="brand.solid"
+        pointerEvents="none"
+        css={{
+          animation: "mp-radar-pulse 1.6s ease-out infinite",
+        }}
+      />
+      <Box
+        className="mp-radar-ring"
+        aria-hidden="true"
+        position="absolute"
+        inset={0}
+        borderRadius="lg"
+        borderWidth="2px"
+        borderColor="brand.solid"
+        pointerEvents="none"
+        css={{
+          animation: "mp-radar-pulse 1.6s ease-out infinite",
+          animationDelay: "0.8s",
+        }}
+      />
+    </>
   );
 }
 

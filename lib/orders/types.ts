@@ -5,7 +5,11 @@
  * Money is always integer pence. Never floats.
  */
 
-import type { OrderItemSnapshot } from "@/types/database";
+import type {
+  OrderAttributionSnapshot,
+  OrderItemSnapshot,
+  OrderStatus,
+} from "@/types/database";
 
 export type OrderMode = "delivery" | "collection";
 
@@ -29,6 +33,7 @@ export interface OrderPricingBreakdown {
 }
 
 export interface CreateOrderInput {
+  idempotencyKey?: string;
   type: OrderMode;
   customerName: string;
   customerEmail: string;
@@ -40,6 +45,7 @@ export interface CreateOrderInput {
   deliveryLng?: number;
   collectionTime?: "asap" | string;
   discountCode?: string;
+  attribution?: OrderAttributionSnapshot;
 }
 
 export type CreateOrderResponse =
@@ -47,6 +53,7 @@ export type CreateOrderResponse =
       ok: true;
       data: {
         orderId: string;
+        reference: string | null;
         paymentRequired: false;
         redirectUrl: string;
       };
@@ -55,6 +62,7 @@ export type CreateOrderResponse =
       ok: true;
       data: {
         orderId: string;
+        reference: string | null;
         paymentRequired: true;
         checkoutUrl: string;
       };
@@ -89,7 +97,7 @@ export interface PublicOrderSummary {
   id: string;
   reference: string | null;
   type: OrderMode;
-  status: string;
+  status: OrderStatus;
   customerName: string;
   items: OrderItemSnapshot[];
   subtotalPence: number;
@@ -101,4 +109,11 @@ export interface PublicOrderSummary {
   estimatedTime: string | null;
   address: string | null;
   createdAt: string;
+}
+
+export interface OrderConversionCustomerData {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  address: string | null;
 }

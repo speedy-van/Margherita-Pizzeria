@@ -2,12 +2,13 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db/client";
-import { timeSlots } from "@/lib/db/schema";
+import { timeSlots, type Order } from "@/lib/db/schema";
 import { verifyCoordinatesWithinRadius } from "@/lib/mapbox/geocode";
 import {
   attachStripeSessionToOrder,
   createCashOrder,
   createPendingStripeOrder,
+  getOrderByIdempotencyKey,
 } from "@/lib/orders/queries";
 import {
   calculateOrderPricing,
@@ -15,15 +16,33 @@ import {
   validateAndPriceCart,
 } from "@/lib/orders/pricing";
 import { formatEstimatedTime } from "@/lib/orders/status";
-import { createOrderCheckoutSession } from "@/lib/stripe/checkout";
+import {
+  createOrderCheckoutSession,
+  retrieveCheckoutSessionUrl,
+} from "@/lib/stripe/checkout";
 import { validateCreateOrderInput } from "@/lib/validations/order";
 import { sendOrderConfirmationEmail } from "@/lib/resend/send-order-confirmation";
 import { sendAdminNewOrderEmail } from "@/lib/resend/send-admin-new-order";
 import { applyDiscountByCode } from "@/lib/discounts/queries";
 import { notifyAdminDevices } from "@/lib/notifications/admin";
+import {
+  computeShopStatus,
+  formatClosedMessage,
+  getOpeningHours,
+} from "@/lib/utils/shop-hours";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function isUniqueViolation(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const maybe = err as { code?: unknown; cause?: unknown };
+  if (maybe.code === "23505") return true;
+  if (maybe.cause && typeof maybe.cause === "object") {
+    return (maybe.cause as { code?: unknown }).code === "23505";
+  }
+  return false;
+}
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -47,6 +66,29 @@ export async function POST(request: Request) {
     );
   }
   const input = validation.data;
+
+  const openingHours = await getOpeningHours();
+  const shopStatus = computeShopStatus(new Date(), openingHours);
+  if (!shopStatus.isOpen) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "SHOP_CLOSED",
+          message: formatClosedMessage(shopStatus),
+          ...(shopStatus.opensAt
+            ? {
+                fields: {
+                  opensAt: shopStatus.opensAt,
+                  opensDay: shopStatus.opensDayLabel ?? "",
+                },
+              }
+            : {}),
+        },
+      },
+      { status: 409 },
+    );
+  }
 
   // Validate cart against DB and recalculate prices server-side.
   const cartResult = await validateAndPriceCart(input.cartItems);
@@ -183,6 +225,101 @@ export async function POST(request: Request) {
     input.type === "collection" ? input.collectionTime : undefined,
   );
 
+  const cashResponse = (order: Order, status: number) =>
+    NextResponse.json(
+      {
+        ok: true,
+        data: {
+          orderId: order.id,
+          reference: order.reference,
+          paymentRequired: false,
+          redirectUrl: `/order/success?orderId=${order.id}`,
+        },
+      },
+      { status },
+    );
+
+  const stripeResponse = async (order: Order, status: number) => {
+    if (order.status !== "pending_payment") {
+      return cashResponse(order, status);
+    }
+
+    if (order.stripeSessionId) {
+      const checkoutUrl = await retrieveCheckoutSessionUrl(order.stripeSessionId);
+      if (checkoutUrl) {
+        return NextResponse.json(
+          {
+            ok: true,
+            data: {
+              orderId: order.id,
+              reference: order.reference,
+              paymentRequired: true,
+              checkoutUrl,
+            },
+          },
+          { status },
+        );
+      }
+    }
+
+    const session = await createOrderCheckoutSession({
+      orderId: order.id,
+      orderReference: order.reference,
+      orderType: input.type,
+      customerEmail: input.customerEmail,
+      items: cartResult.items,
+      deliveryFeePence: pricing.deliveryFeePence,
+      discountPence: pricing.discountPence,
+      discountCode: pricing.discountCode,
+      idempotencyKey: input.idempotencyKey ?? order.idempotencyKey ?? order.id,
+    });
+    await attachStripeSessionToOrder(order.id, session.sessionId);
+    return NextResponse.json(
+      {
+        ok: true,
+        data: {
+          orderId: order.id,
+          reference: order.reference,
+          paymentRequired: true,
+          checkoutUrl: session.url,
+        },
+      },
+      { status },
+    );
+  };
+
+  const orderResponse = async (order: Order, status: number) => {
+    if (order.paymentMethod === "stripe_card") {
+      return stripeResponse(order, status);
+    }
+    return cashResponse(order, status);
+  };
+
+  const findIdempotentOrder = async () => {
+    if (!input.idempotencyKey) return null;
+    return getOrderByIdempotencyKey(input.idempotencyKey);
+  };
+
+  const existingOrder = await findIdempotentOrder();
+  if (existingOrder) {
+    try {
+      return await orderResponse(existingOrder, 200);
+    } catch (err: unknown) {
+      // eslint-disable-next-line no-console
+      console.error("[orders/create] idempotent replay failed:", err);
+      return NextResponse.json(
+        {
+          ok: false,
+          error: {
+            code: "ORDER_REPLAY_FAILED",
+            message: "We found this order attempt but couldn't resume it. Please contact us.",
+          },
+        },
+        { status: 500 },
+      );
+    }
+  }
+
   if (input.paymentMethod === "cash_on_delivery") {
     try {
       const order = await createCashOrder({
@@ -240,6 +377,10 @@ export async function POST(request: Request) {
         { status: 201 },
       );
     } catch (err: unknown) {
+      if (input.idempotencyKey && isUniqueViolation(err)) {
+        const existing = await findIdempotentOrder();
+        if (existing) return orderResponse(existing, 200);
+      }
       // eslint-disable-next-line no-console
       console.error("[orders/create] cash order failed:", err);
       return NextResponse.json(
@@ -256,7 +397,7 @@ export async function POST(request: Request) {
   }
 
   // Stripe card flow.
-  let order;
+  let order: Order;
   try {
     order = await createPendingStripeOrder({
       input,
@@ -265,6 +406,10 @@ export async function POST(request: Request) {
       estimatedTime,
     });
   } catch (err: unknown) {
+    if (input.idempotencyKey && isUniqueViolation(err)) {
+      const existing = await findIdempotentOrder();
+      if (existing) return orderResponse(existing, 200);
+    }
     // eslint-disable-next-line no-console
     console.error("[orders/create] pending stripe order failed:", err);
     return NextResponse.json(
@@ -289,6 +434,7 @@ export async function POST(request: Request) {
       deliveryFeePence: pricing.deliveryFeePence,
       discountPence: pricing.discountPence,
       discountCode: pricing.discountCode,
+      idempotencyKey: input.idempotencyKey ?? order.id,
     });
     await attachStripeSessionToOrder(order.id, session.sessionId);
     return NextResponse.json(

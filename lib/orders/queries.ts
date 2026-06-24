@@ -5,6 +5,7 @@ import { orders, type Order } from "@/lib/db/schema";
 import { formatEstimatedTime, isOrderPaidOrBeyond } from "@/lib/orders/status";
 import type {
   CreateOrderInput,
+  OrderConversionCustomerData,
   OrderPricingBreakdown,
   PublicOrderSummary,
   ValidatedOrderItem,
@@ -82,6 +83,8 @@ export async function createCashOrder(
       discountPence: pricing.discountPence,
       totalPence: pricing.totalPence,
       paymentMethod: "cash_on_delivery",
+      idempotencyKey: input.idempotencyKey ?? null,
+      attribution: input.attribution ?? null,
       estimatedTime,
     })
     .returning();
@@ -117,6 +120,8 @@ export async function createPendingStripeOrder(
       discountPence: pricing.discountPence,
       totalPence: pricing.totalPence,
       paymentMethod: "stripe_card",
+      idempotencyKey: input.idempotencyKey ?? null,
+      attribution: input.attribution ?? null,
       estimatedTime,
     })
     .returning();
@@ -139,6 +144,18 @@ export async function attachStripeSessionToOrder(
 export async function getOrderById(id: string): Promise<Order | null> {
   if (!id) return null;
   const [row] = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+  return row ?? null;
+}
+
+export async function getOrderByIdempotencyKey(
+  idempotencyKey: string,
+): Promise<Order | null> {
+  if (!idempotencyKey) return null;
+  const [row] = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.idempotencyKey, idempotencyKey))
+    .limit(1);
   return row ?? null;
 }
 
@@ -175,6 +192,20 @@ export async function getPublicOrderSummary(
     estimatedTime: row.estimatedTime ?? null,
     address: row.address ?? null,
     createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export async function getOrderConversionCustomerData(
+  id: string,
+): Promise<OrderConversionCustomerData | null> {
+  const row = await getOrderById(id);
+  if (!row) return null;
+
+  return {
+    customerName: row.customerName,
+    customerEmail: row.customerEmail,
+    customerPhone: row.customerPhone,
+    address: row.address ?? null,
   };
 }
 

@@ -18,6 +18,7 @@ export interface CreateCheckoutSessionArgs {
   /** Discount amount in pence — Stripe receives a one-shot inline coupon. */
   discountPence?: number;
   discountCode?: string | null;
+  idempotencyKey?: string | null;
 }
 
 export interface CreateCheckoutSessionResult {
@@ -64,26 +65,38 @@ export async function createOrderCheckoutSession(
     });
   }
 
+  const discountCouponId =
+    args.discountPence && args.discountPence > 0
+      ? (
+          await stripe.coupons.create(
+            {
+              amount_off: args.discountPence,
+              currency: "gbp",
+              duration: "once",
+              name: args.discountCode
+                ? `Discount ${args.discountCode}`
+                : "Discount",
+              max_redemptions: 1,
+            },
+            args.idempotencyKey
+              ? {
+                  idempotencyKey: `order-discount:${args.orderId}:${args.idempotencyKey}`,
+                }
+              : undefined,
+          )
+        ).id
+      : null;
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
     customer_email: args.customerEmail,
     line_items: lineItems,
-    ...(args.discountPence && args.discountPence > 0
+    ...(discountCouponId
       ? {
           discounts: [
             {
-              coupon: (
-                await stripe.coupons.create({
-                  amount_off: args.discountPence,
-                  currency: "gbp",
-                  duration: "once",
-                  name: args.discountCode
-                    ? `Discount ${args.discountCode}`
-                    : "Discount",
-                  max_redemptions: 1,
-                })
-              ).id,
+              coupon: discountCouponId,
             },
           ],
         }
@@ -91,18 +104,49 @@ export async function createOrderCheckoutSession(
     success_url: `${site}/order/success?orderId=${encodeURIComponent(
       args.orderId,
     )}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${site}/order?cancelled=1`,
+    cancel_url: `${site}/order/checkout?cancelled=1`,
     metadata: {
       orderId: args.orderId,
       orderType: args.orderType,
       ...(args.orderReference ? { orderReference: args.orderReference } : {}),
       ...(args.discountCode ? { discountCode: args.discountCode } : {}),
     },
-  });
+  }, args.idempotencyKey
+    ? { idempotencyKey: `order-checkout:${args.orderId}:${args.idempotencyKey}` }
+    : undefined);
 
   if (!session.url) {
     throw new Error("Stripe did not return a checkout URL.");
   }
 
   return { sessionId: session.id, url: session.url };
+}
+
+export async function retrieveCheckoutSessionUrl(
+  sessionId: string,
+): Promise<string | null> {
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  return session.url ?? null;
+}
+
+export interface StripeSessionVerification {
+  paid: boolean;
+  orderIdMatches: boolean;
+}
+
+/**
+ * Server-side guard: retrieves a Stripe Checkout Session and confirms it is
+ * paid and belongs to the given orderId. Throws on network / API errors —
+ * callers should catch and treat as unverified.
+ */
+export async function verifyStripeCheckoutSession(
+  sessionId: string,
+  orderId: string,
+): Promise<StripeSessionVerification> {
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  const paid = session.payment_status === "paid";
+  const orderIdMatches = session.metadata?.orderId === orderId;
+  return { paid, orderIdMatches };
 }

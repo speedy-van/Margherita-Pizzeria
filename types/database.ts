@@ -32,6 +32,24 @@ export interface OrderItemSnapshot {
   allergens: string[];
 }
 
+export interface OrderAttributionSnapshot {
+  gclid?: string;
+  gbraid?: string;
+  wbraid?: string;
+  gclAw?: string;
+  gclGb?: string;
+  gclDc?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
+  landingPage?: string;
+  referrer?: string;
+  capturedAt: string;
+  lastSeenAt: string;
+}
+
 export interface PublicMenuItem {
   id: string;
   categoryId: string | null;

@@ -37,7 +37,45 @@ const cartItemSchema = z.object({
     .max(20, "Quantity is too large"),
 });
 
+const idempotencyKeySchema = z
+  .string()
+  .trim()
+  .min(16, "Invalid order attempt key")
+  .max(120, "Order attempt key is too long")
+  .regex(/^[A-Za-z0-9._:-]+$/, "Invalid order attempt key")
+  .optional();
+
+const optionalAttributionString = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : undefined));
+
+const attributionSchema = z
+  .object({
+    gclid: optionalAttributionString(512),
+    gbraid: optionalAttributionString(512),
+    wbraid: optionalAttributionString(512),
+    gclAw: optionalAttributionString(512),
+    gclGb: optionalAttributionString(512),
+    gclDc: optionalAttributionString(512),
+    utmSource: optionalAttributionString(120),
+    utmMedium: optionalAttributionString(120),
+    utmCampaign: optionalAttributionString(240),
+    utmTerm: optionalAttributionString(240),
+    utmContent: optionalAttributionString(240),
+    landingPage: optionalAttributionString(600),
+    referrer: optionalAttributionString(600),
+    capturedAt: z.string().trim().datetime().max(40),
+    lastSeenAt: z.string().trim().datetime().max(40),
+  })
+  .strict()
+  .optional();
+
 const baseSchema = z.object({
+  idempotencyKey: idempotencyKeySchema,
   type: z.enum(["delivery", "collection"]),
   customerName: z
     .string()
@@ -61,6 +99,7 @@ const baseSchema = z.object({
     .max(40)
     .optional()
     .transform((v) => (v && v.length > 0 ? v.toUpperCase() : undefined)),
+  attribution: attributionSchema,
 });
 
 function flattenFieldErrors(err: z.ZodError): Record<string, string> {
@@ -127,6 +166,7 @@ export function validateCreateOrderInput(
 
   // Build clean typed output. Cast through zod-parsed `data`.
   const out: CreateOrderInput = {
+    ...(data.idempotencyKey ? { idempotencyKey: data.idempotencyKey } : {}),
     type: data.type,
     customerName: data.customerName,
     customerEmail: data.customerEmail.toLowerCase(),
@@ -146,5 +186,7 @@ export function validateCreateOrderInput(
           collectionTime: data.collectionTime,
         }),
     ...(data.discountCode ? { discountCode: data.discountCode } : {}),
-  };  return { ok: true, data: out };
+    ...(data.attribution ? { attribution: data.attribution } : {}),
+  };
+  return { ok: true, data: out };
 }

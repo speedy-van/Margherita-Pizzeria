@@ -9,7 +9,13 @@
  *  - No `any`. No external dependencies. No script injection here.
  */
 
-export type GtagParamValue = string | number | boolean | null;
+export type GtagParamValue =
+  | string
+  | number
+  | boolean
+  | null
+  | GtagParamValue[]
+  | { [key: string]: GtagParamValue };
 export type GtagParams = Record<string, GtagParamValue>;
 
 type GtagCommand = "config" | "event" | "set" | "consent" | "js";
@@ -29,22 +35,32 @@ declare global {
 
 export function getGaMeasurementId(): string | null {
   const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  return id && id.trim() !== "" ? id : null;
+  const trimmed = id?.trim();
+  return trimmed ? trimmed : null;
 }
 
 export function getGoogleAdsId(): string | null {
   const id = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
-  return id && id.trim() !== "" ? id : null;
+  const trimmed = id?.trim();
+  return trimmed ? trimmed : null;
 }
 
 function getOrderConversionLabel(): string | null {
   const v = process.env.NEXT_PUBLIC_GOOGLE_ADS_ORDER_CONVERSION_LABEL;
-  return v && v.trim() !== "" ? v : null;
+  const trimmed = v?.trim();
+  return trimmed ? trimmed : null;
 }
 
 function getCollectionConversionLabel(): string | null {
   const v = process.env.NEXT_PUBLIC_GOOGLE_ADS_COLLECTION_CONVERSION_LABEL;
-  return v && v.trim() !== "" ? v : null;
+  const trimmed = v?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function getSubscribeConversionLabel(): string | null {
+  const v = process.env.NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_CONVERSION_LABEL;
+  const trimmed = v?.trim();
+  return trimmed ? trimmed : null;
 }
 
 export const conversionLabels = {
@@ -54,6 +70,9 @@ export const conversionLabels = {
   get collection(): string | null {
     return getCollectionConversionLabel();
   },
+  get subscribe(): string | null {
+    return getSubscribeConversionLabel();
+  },
 };
 
 function safeGtag(): GtagFn | null {
@@ -62,13 +81,19 @@ function safeGtag(): GtagFn | null {
   return typeof fn === "function" ? fn : null;
 }
 
-export function gtagEvent(eventName: string, params?: GtagParams): void {
+export function isGtagAvailable(): boolean {
+  return safeGtag() !== null;
+}
+
+export function gtagEvent(eventName: string, params?: GtagParams): boolean {
   const gtag = safeGtag();
-  if (!gtag) return;
+  if (!gtag) return false;
   try {
     gtag("event", eventName, params);
+    return true;
   } catch {
     // Never let analytics break user flows.
+    return false;
   }
 }
 
@@ -78,14 +103,63 @@ export interface ConversionParams {
   transactionId?: string;
 }
 
+export interface EnhancedConversionUserData {
+  email?: string;
+  phone_number?: string;
+  address?: {
+    first_name?: string;
+    last_name?: string;
+    street?: string;
+    city?: string;
+    region?: string;
+    postal_code?: string;
+    country?: string;
+  };
+}
+
+function hasEnhancedConversionUserData(
+  userData: EnhancedConversionUserData | undefined,
+): userData is EnhancedConversionUserData {
+  if (!userData) return false;
+  return Boolean(
+    userData.email ||
+      userData.phone_number ||
+      userData.address?.first_name ||
+      userData.address?.last_name ||
+      userData.address?.street ||
+      userData.address?.city ||
+      userData.address?.region ||
+      userData.address?.postal_code ||
+      userData.address?.country,
+  );
+}
+
+export function setGoogleAdsUserData(
+  userData?: EnhancedConversionUserData,
+): boolean {
+  if (!hasEnhancedConversionUserData(userData)) return false;
+
+  const gtag = safeGtag();
+  if (!gtag) return false;
+
+  try {
+    gtag("set", "user_data", userData as GtagParams);
+    return true;
+  } catch {
+    // Never let enhanced conversion data break the order confirmation flow.
+    return false;
+  }
+}
+
 export function googleAdsConversion(
   conversionLabel: string,
   params?: ConversionParams,
-): void {
+): boolean {
   const adsId = getGoogleAdsId();
-  if (!adsId) return;
+  if (!adsId) return false;
+
   const gtag = safeGtag();
-  if (!gtag) return;
+  if (!gtag) return false;
 
   const sendTo = `${adsId}/${conversionLabel}`;
   const payload: GtagParams = { send_to: sendTo };
@@ -100,7 +174,33 @@ export function googleAdsConversion(
 
   try {
     gtag("event", "conversion", payload);
+    return true;
   } catch {
-    // swallow
+    // Never let analytics break user flows.
+    return false;
   }
+}
+
+export function googleAdsConversionPixelUrl(
+  conversionLabel: string,
+  params?: ConversionParams,
+): string | null {
+  const adsId = getGoogleAdsId();
+  if (!adsId) return null;
+
+  const id = adsId.replace(/^AW-/, "").trim();
+  if (!id || !conversionLabel.trim()) return null;
+
+  const url = new URL(`https://www.googleadservices.com/pagead/conversion/${id}/`);
+  url.searchParams.set("label", conversionLabel);
+  url.searchParams.set("guid", "ON");
+  url.searchParams.set("script", "0");
+  if (typeof params?.value === "number" && Number.isFinite(params.value)) {
+    url.searchParams.set("value", params.value.toFixed(2));
+    url.searchParams.set("currency_code", params.currency ?? "GBP");
+  }
+  if (params?.transactionId) {
+    url.searchParams.set("transaction_id", params.transactionId);
+  }
+  return url.toString();
 }
