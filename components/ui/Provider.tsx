@@ -8,6 +8,7 @@ import {
 } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
+import { EmotionRegistry } from "@/components/ui/EmotionRegistry";
 import { brandColors } from "@/lib/config/site";
 
 const config = defineConfig({
@@ -63,9 +64,14 @@ const config = defineConfig({
           "0 0 6px #fff, 0 0 14px #E04B36, 0 0 26px #E04B36",
       },
     },
+    "@keyframes radar-ring": {
+      "0%":   { transform: "scale(1)",   opacity: 0.75 },
+      "100%": { transform: "scale(2.8)", opacity: 0    },
+    },
     "@media (prefers-reduced-motion: reduce)": {
       ".logo-neon-rotor": { animation: "none !important" },
-      ".logo-m-flash": { animation: "none !important" },
+      ".logo-m-flash":    { animation: "none !important" },
+      ".radar-ring":      { animation: "none !important" },
     },
   } as unknown as Record<string, never>),
   theme: {
@@ -164,5 +170,9 @@ const config = defineConfig({
 const system = createSystem(defaultConfig, config);
 
 export function Provider({ children }: { children: ReactNode }) {
-  return <ChakraProvider value={system}>{children}</ChakraProvider>;
+  return (
+    <EmotionRegistry>
+      <ChakraProvider value={system}>{children}</ChakraProvider>
+    </EmotionRegistry>
+  );
 }

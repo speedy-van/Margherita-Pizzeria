@@ -2,7 +2,7 @@ import { Box, Button, HStack, Stack } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 
-import { DirectionsMapPlaceholder } from "@/components/directions/DirectionsMapPlaceholder";
+import { DirectionsMap } from "@/components/directions/DirectionsMap";
 import { DirectionsRouteCards } from "@/components/directions/DirectionsRouteCards";
 import { ParkingInfo } from "@/components/directions/ParkingInfo";
 import { TransportInfo } from "@/components/directions/TransportInfo";
@@ -42,7 +42,7 @@ export default function DirectionsPage() {
         ]}
       />
       <Stack gap={{ base: 6, md: 8 }}>
-        <DirectionsMapPlaceholder />
+        <DirectionsMap />
 
         <HStack gap={3} flexWrap="wrap">
           <NextLink

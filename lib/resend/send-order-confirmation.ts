@@ -1,7 +1,9 @@
 import { OrderConfirmationEmail } from "@/emails/order-confirmation";
 import { siteConfig } from "@/lib/config/site";
 import type { Order } from "@/lib/db/schema";
-import { getSiteUrl } from "@/lib/resend/email-copy";
+import { buildInvoiceDocument } from "@/lib/invoices/model";
+import { renderInvoicePdfBuffer } from "@/lib/invoices/pdf";
+import { formatShortReference, getSiteUrl } from "@/lib/resend/email-copy";
 import { getMailerOrSkip } from "@/lib/resend/server";
 import type { EmailSendResult } from "@/lib/resend/types";
 
@@ -22,9 +24,18 @@ export async function sendOrderConfirmationEmail(
     return { ok: true, skipped: true, reason: mailer.reason };
   }
 
-  const reference = order.id.slice(0, 8).toUpperCase();
+  const reference = formatShortReference(order.id, order.reference);
   const subject = `${siteConfig.name} — order ${reference} confirmed`;
   const siteUrl = getSiteUrl();
+  const invoice = buildInvoiceDocument(order);
+
+  let pdfBuffer: Buffer | undefined;
+  try {
+    pdfBuffer = await renderInvoicePdfBuffer(invoice);
+  } catch (err: unknown) {
+    // eslint-disable-next-line no-console
+    console.error("[email] PDF generation failed:", err instanceof Error ? err.message : err);
+  }
 
   try {
     const result = await mailer.resend.emails.send({
@@ -32,6 +43,17 @@ export async function sendOrderConfirmationEmail(
       to: order.customerEmail,
       subject,
       react: OrderConfirmationEmail({ order, siteUrl }),
+      ...(pdfBuffer
+        ? {
+            attachments: [
+              {
+                filename: invoice.fileName,
+                content: pdfBuffer,
+                contentType: "application/pdf",
+              },
+            ],
+          }
+        : {}),
     });
     if (result.error) {
       // eslint-disable-next-line no-console

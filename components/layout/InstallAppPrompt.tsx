@@ -9,6 +9,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { AnimatePresence, motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEYS = {
@@ -18,6 +19,7 @@ const STORAGE_KEYS = {
 
 const DISMISS_COOLDOWN_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 const FIRST_PROMPT_DELAY_MS = 8000; // give the user a moment
+const ROUTE_PROMPT_DELAY_MS = 1200;
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -66,6 +68,7 @@ function withinCooldown(): boolean {
 }
 
 export function InstallAppPrompt() {
+  const pathname = usePathname() ?? "/";
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
@@ -73,6 +76,11 @@ export function InstallAppPrompt() {
 
   const ios = useMemo(() => isIos(), []);
   const iosSafari = useMemo(() => ios && isSafari(), [ios]);
+  const shouldPromptOnRoute = useMemo(() => {
+    if (pathname === "/order/success") return true;
+    if (pathname === "/book/success") return true;
+    return /^\/track\/[0-9a-f-]{36}$/i.test(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -123,6 +131,34 @@ export function InstallAppPrompt() {
       window.removeEventListener("appinstalled", onInstalled);
     };
   }, [iosSafari]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!shouldPromptOnRoute) return;
+    if (isStandalone()) return;
+
+    try {
+      if (window.localStorage.getItem(STORAGE_KEYS.installed) === "1") return;
+    } catch {
+      // ignore
+    }
+    if (withinCooldown()) return;
+
+    // Trigger quickly after high-intent actions like successful order/booking
+    // or when users open a tracking link.
+    const t = window.setTimeout(() => {
+      if (iosSafari) {
+        setShowIosHint(true);
+        setVisible(true);
+        return;
+      }
+      if (deferredPrompt) {
+        setVisible(true);
+      }
+    }, ROUTE_PROMPT_DELAY_MS);
+
+    return () => window.clearTimeout(t);
+  }, [deferredPrompt, iosSafari, shouldPromptOnRoute]);
 
   const dismiss = useCallback(() => {
     setVisible(false);

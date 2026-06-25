@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import Script from "next/script";
 
+import { GoogleAdsAttributionCapture } from "@/components/analytics/GoogleAdsAttributionCapture";
 import { AppShell } from "@/components/layout/AppShell";
 import { RestaurantJsonLd } from "@/components/seo/RestaurantJsonLd";
 import { WebSiteJsonLd } from "@/components/seo/WebSiteJsonLd";
@@ -10,6 +11,10 @@ import { getGaMeasurementId, getGoogleAdsId } from "@/lib/analytics/gtag";
 import { siteConfig } from "@/lib/config/site";
 import { primaryKeywords } from "@/lib/seo/keywords";
 import { baseOpenGraph, canonicalUrl } from "@/lib/seo/metadata";
+import {
+  DEFAULT_OPENING_HOURS,
+  getOpeningHours,
+} from "@/lib/utils/shop-hours";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -32,7 +37,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url || "http://localhost:3000"),
+  metadataBase: new URL(siteConfig.url || "https://www.margheritapizza.uk"),
   title: {
     default: `${siteConfig.name} — Sourdough Pizza, Halal, Dennistoun`,
     template: `%s · ${siteConfig.name}`,
@@ -69,10 +74,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const gaId = getGaMeasurementId();
   const adsId = getGoogleAdsId();
   const primaryGtagId = gaId ?? adsId;
+  const openingHours = await getOpeningHours().catch(() => DEFAULT_OPENING_HOURS);
 
   return (
     <html
@@ -82,27 +88,41 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body suppressHydrationWarning>
         <Provider>
-          <AppShell>{children}</AppShell>
+          <GoogleAdsAttributionCapture />
+          <AppShell openingHours={openingHours}>{children}</AppShell>
         </Provider>
         <RestaurantJsonLd />
         <WebSiteJsonLd />
         {primaryGtagId ? (
           <>
+            {/*
+             * Plain <script> with dangerouslySetInnerHTML renders as a real
+             * synchronous <script> tag in the server HTML — the only reliable
+             * way to guarantee window.gtag is defined before React hydrates
+             * and any useEffect fires. The Next.js <Script> component with
+             * strategy="beforeInteractive" serialises inline content into
+             * self.__next_s (a streaming queue) rather than a real <script>
+             * tag, so window.gtag is never defined synchronously.
+             *
+             * The heavy gtag.js loader stays deferred (afterInteractive).
+             */}
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){window.dataLayer.push(arguments);}
+                  window.gtag = gtag;
+                  gtag('js', new Date());
+                  ${gaId ? `gtag('config', '${gaId}');` : ""}
+                  ${adsId ? `gtag('config', '${adsId}');` : ""}
+                `,
+              }}
+            />
             <Script
               id="gtag-loader"
               strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${primaryGtagId}`}
             />
-            <Script id="gtag-init" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);} 
-                window.gtag = gtag;
-                gtag('js', new Date());
-                ${gaId ? `gtag('config', '${gaId}');` : ""}
-                ${adsId ? `gtag('config', '${adsId}');` : ""}
-              `}
-            </Script>
           </>
         ) : null}
       </body>

@@ -6,6 +6,7 @@ import {
   updateAdminOrderStatus,
 } from "@/lib/admin/queries";
 import {
+  canTransitionAdminOrderStatus,
   validateAdminOrderStatusInput,
   validateUuid,
 } from "@/lib/admin/validation";
@@ -48,6 +49,29 @@ export async function POST(req: Request, ctx: RouteContext) {
       { ok: false, error: { code: "NOT_FOUND", message: "Order not found." } },
       { status: 404 },
     );
+
+  if (existing.status === validation.data.status) {
+    return NextResponse.json({ ok: true, data: existing }, { status: 200 });
+  }
+
+  if (
+    !canTransitionAdminOrderStatus(
+      existing.status,
+      validation.data.status,
+      existing.type,
+    )
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "INVALID_STATUS_TRANSITION",
+          message: "That status change is not available for this order.",
+        },
+      },
+      { status: 409 },
+    );
+  }
 
   try {
     const data = await updateAdminOrderStatus(

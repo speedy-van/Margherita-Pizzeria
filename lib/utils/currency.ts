@@ -1,8 +1,6 @@
-import { siteConfig } from "@/lib/config/site";
-
-const formatter = new Intl.NumberFormat(siteConfig.locale, {
+const formatter = new Intl.NumberFormat("en-GB", {
   style: "currency",
-  currency: siteConfig.currency,
+  currency: "GBP",
 });
 
 /**

@@ -4,25 +4,17 @@ import type {
   ValidationFailure,
   ValidationResult,
 } from "@/lib/validations/menu";
-import type { OpeningHours } from "@/types/database";
+import { validateOpeningHours } from "@/lib/utils/shop-hours";
+import type { OpeningHours, OrderStatus, OrderType } from "@/types/database";
 
 /**
  * Admin validation. All inputs validated server-side before any DB write.
  * Money is integer pence. No floats.
  */
 
-const HHMM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const WEEKDAYS = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-] as const;
+const HHMM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 function fail(
   message: string,
@@ -67,6 +59,43 @@ export const ADMIN_ORDER_STATUSES = [
   "cancelled",
   "rejected",
 ] as const;
+
+const ORDER_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+  pending_payment: [],
+  received: ["making", "ready", "rejected", "cancelled"],
+  making: ["ready", "cancelled"],
+  ready: ["out_for_delivery", "delivered", "cancelled"],
+  out_for_delivery: ["delivered"],
+  delivered: [],
+  cancelled: [],
+  rejected: [],
+};
+
+export function canTransitionAdminOrderStatus(
+  currentStatus: OrderStatus,
+  nextStatus: OrderStatus,
+  orderType: OrderType,
+): boolean {
+  if (!ORDER_TRANSITIONS[currentStatus].includes(nextStatus)) return false;
+  if (orderType === "collection" && nextStatus === "out_for_delivery") return false;
+  if (
+    orderType === "delivery" &&
+    currentStatus === "ready" &&
+    nextStatus === "delivered"
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export function getAdminOrderNextStatuses(
+  currentStatus: OrderStatus,
+  orderType: OrderType,
+): OrderStatus[] {
+  return ADMIN_ORDER_STATUSES.filter((status) =>
+    canTransitionAdminOrderStatus(currentStatus, status, orderType),
+  );
+}
 
 const orderStatusSchema = z.object({
   status: z.enum(ADMIN_ORDER_STATUSES),
@@ -152,32 +181,19 @@ export function validateUpdateMenuCategoryInput(
 
 /* ─────────── Settings ─────────── */
 
-function isOpeningHours(value: unknown): value is OpeningHours {
-  if (!value || typeof value !== "object") return false;
-  const obj = value as Record<string, unknown>;
-  for (const day of WEEKDAYS) {
-    const entry = obj[day];
-    if (!entry || typeof entry !== "object") return false;
-    const e = entry as Record<string, unknown>;
-    const open = e.open;
-    const close = e.close;
-    const closed = e.closed;
-    if (typeof closed !== "undefined" && typeof closed !== "boolean") return false;
-    if (closed === true) continue;
-    if (typeof open !== "string" || !HHMM_RE.test(open)) return false;
-    if (typeof close !== "string" || !HHMM_RE.test(close)) return false;
-  }
-  return true;
-}
-
 const positiveInt = (max: number) => z.number().int().min(0).max(max);
 
 const settingsSchema = z
   .object({
+    acceptingOnlineOrders: z.boolean(),
+    collectionOpen: z.boolean(),
+    deliveryOpen: z.boolean(),
+    busyMode: z.enum(["normal", "busy", "very_busy"]),
     minDeliveryOrderPence: positiveInt(100_000),
     deliveryFeePence: positiveInt(50_000),
     prepTimeMinutes: positiveInt(360),
     deliveryTimeMinutes: positiveInt(360),
+    customerMessage: z.string().trim().max(240),
     depositEnabled: z.boolean(),
     depositAmountPence: positiveInt(50_000),
     openingHours: z.unknown(),
@@ -188,10 +204,15 @@ const settingsSchema = z
   });
 
 export interface AdminSettingsUpdateInput {
+  acceptingOnlineOrders?: boolean;
+  collectionOpen?: boolean;
+  deliveryOpen?: boolean;
+  busyMode?: "normal" | "busy" | "very_busy";
   minDeliveryOrderPence?: number;
   deliveryFeePence?: number;
   prepTimeMinutes?: number;
   deliveryTimeMinutes?: number;
+  customerMessage?: string;
   depositEnabled?: boolean;
   depositAmountPence?: number;
   openingHours?: OpeningHours;
@@ -210,16 +231,24 @@ export function validateAdminSettingsInput(
   const data = parsed.data;
   let openingHours: OpeningHours | undefined;
   if (typeof data.openingHours !== "undefined") {
-    if (!isOpeningHours(data.openingHours)) {
+    const validatedOpeningHours = validateOpeningHours(data.openingHours);
+    if (!validatedOpeningHours) {
       return fail("Invalid settings payload.", {
         openingHours:
-          "Opening hours must include every weekday with HH:mm open/close or closed:true.",
+          "Opening hours must include every weekday with valid HH:mm open/close times. Close must be after open; use 00:00 for midnight.",
       });
     }
-    openingHours = data.openingHours;
+    openingHours = validatedOpeningHours;
   }
 
   const out: AdminSettingsUpdateInput = {};
+  if (typeof data.acceptingOnlineOrders === "boolean")
+    out.acceptingOnlineOrders = data.acceptingOnlineOrders;
+  if (typeof data.collectionOpen === "boolean")
+    out.collectionOpen = data.collectionOpen;
+  if (typeof data.deliveryOpen === "boolean")
+    out.deliveryOpen = data.deliveryOpen;
+  if (data.busyMode) out.busyMode = data.busyMode;
   if (typeof data.minDeliveryOrderPence === "number")
     out.minDeliveryOrderPence = data.minDeliveryOrderPence;
   if (typeof data.deliveryFeePence === "number")
@@ -228,6 +257,8 @@ export function validateAdminSettingsInput(
     out.prepTimeMinutes = data.prepTimeMinutes;
   if (typeof data.deliveryTimeMinutes === "number")
     out.deliveryTimeMinutes = data.deliveryTimeMinutes;
+  if (typeof data.customerMessage === "string")
+    out.customerMessage = data.customerMessage;
   if (typeof data.depositEnabled === "boolean")
     out.depositEnabled = data.depositEnabled;
   if (typeof data.depositAmountPence === "number")

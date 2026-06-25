@@ -11,17 +11,27 @@ import type {
 } from "@/lib/orders/types";
 
 export interface OrderSettings {
+  acceptingOnlineOrders: boolean;
+  collectionOpen: boolean;
+  deliveryOpen: boolean;
+  busyMode: "normal" | "busy" | "very_busy";
   minDeliveryOrderPence: number;
   deliveryFeePence: number;
   prepTimeMinutes: number;
   deliveryTimeMinutes: number;
+  customerMessage: string;
 }
 
 const SETTING_KEYS = {
+  ACCEPTING_ONLINE_ORDERS: "accepting_online_orders",
+  COLLECTION_OPEN: "collection_open",
+  DELIVERY_OPEN: "delivery_open",
+  BUSY_MODE: "busy_mode",
   MIN_DELIVERY_ORDER_PENCE: "min_delivery_order_pence",
   DELIVERY_FEE_PENCE: "delivery_fee_pence",
   PREP_TIME_MINUTES: "prep_time_minutes",
   DELIVERY_TIME_MINUTES: "delivery_time_minutes",
+  CUSTOMER_MESSAGE: "customer_message",
 } as const;
 
 const DEFAULT_PREP_TIME_MINUTES = 25;
@@ -42,16 +52,38 @@ function toPositiveInt(value: unknown, fallback: number): number {
   return fallback;
 }
 
+function toBool(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    if (value === "true") return true;
+    if (value === "false") return false;
+  }
+  return fallback;
+}
+
+function toBusyMode(value: unknown): "normal" | "busy" | "very_busy" {
+  return value === "busy" || value === "very_busy" ? value : "normal";
+}
+
+function toMessage(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 export async function getOrderSettings(): Promise<OrderSettings> {
   const rows = await db
     .select()
     .from(settings)
     .where(
       inArray(settings.key, [
+        SETTING_KEYS.ACCEPTING_ONLINE_ORDERS,
+        SETTING_KEYS.COLLECTION_OPEN,
+        SETTING_KEYS.DELIVERY_OPEN,
+        SETTING_KEYS.BUSY_MODE,
         SETTING_KEYS.MIN_DELIVERY_ORDER_PENCE,
         SETTING_KEYS.DELIVERY_FEE_PENCE,
         SETTING_KEYS.PREP_TIME_MINUTES,
         SETTING_KEYS.DELIVERY_TIME_MINUTES,
+        SETTING_KEYS.CUSTOMER_MESSAGE,
       ]),
     );
 
@@ -61,6 +93,13 @@ export async function getOrderSettings(): Promise<OrderSettings> {
   }
 
   return {
+    acceptingOnlineOrders: toBool(
+      map.get(SETTING_KEYS.ACCEPTING_ONLINE_ORDERS),
+      true,
+    ),
+    collectionOpen: toBool(map.get(SETTING_KEYS.COLLECTION_OPEN), true),
+    deliveryOpen: toBool(map.get(SETTING_KEYS.DELIVERY_OPEN), true),
+    busyMode: toBusyMode(map.get(SETTING_KEYS.BUSY_MODE)),
     minDeliveryOrderPence: toPositiveInt(
       map.get(SETTING_KEYS.MIN_DELIVERY_ORDER_PENCE),
       siteConfig.defaultMinDeliveryOrderPence,
@@ -77,6 +116,7 @@ export async function getOrderSettings(): Promise<OrderSettings> {
       map.get(SETTING_KEYS.DELIVERY_TIME_MINUTES),
       DEFAULT_DELIVERY_TIME_MINUTES,
     ),
+    customerMessage: toMessage(map.get(SETTING_KEYS.CUSTOMER_MESSAGE)),
   };
 }
 

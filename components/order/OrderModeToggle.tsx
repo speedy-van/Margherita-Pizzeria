@@ -17,7 +17,7 @@ interface Option {
 }
 
 const OPTIONS: ReadonlyArray<Option> = [
-  { value: "delivery", label: "Delivery", hint: "Within 5 miles of G31" },
+  { value: "delivery", label: "Delivery", hint: "Within 4 miles of G31" },
   { value: "collection", label: "Collection", hint: "From Alexandra Parade" },
 ];
 

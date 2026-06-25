@@ -30,7 +30,15 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 interface LoadedData {
-  settings: { minDeliveryOrderPence: number; deliveryFeePence: number };
+  settings: {
+    acceptingOnlineOrders: boolean;
+    collectionOpen: boolean;
+    deliveryOpen: boolean;
+    busyMode: "normal" | "busy" | "very_busy";
+    customerMessage: string;
+    minDeliveryOrderPence: number;
+    deliveryFeePence: number;
+  };
   slots: CollectionSlotOption[];
   openingHours: OpeningHours;
   initialShopStatus: ShopStatus;
@@ -48,6 +56,11 @@ async function loadOrderPageData(): Promise<LoadedData> {
   ]);
   return {
     settings: {
+      acceptingOnlineOrders: settings.acceptingOnlineOrders,
+      collectionOpen: settings.collectionOpen,
+      deliveryOpen: settings.deliveryOpen,
+      busyMode: settings.busyMode,
+      customerMessage: settings.customerMessage,
       minDeliveryOrderPence: settings.minDeliveryOrderPence,
       deliveryFeePence: settings.deliveryFeePence,
     },

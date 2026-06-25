@@ -24,14 +24,11 @@ export function MenuCartButton({
     return (
       <Box
         position="fixed"
-        bottom={{ base: "4", md: "6" }}
+        bottom={{ base: "calc(env(safe-area-inset-bottom) + 84px)", md: "6" }}
         left={{ base: "4", md: "auto" }}
         right={{ base: "4", md: "6" }}
         zIndex="docked"
         display={{ base: empty ? "none" : "block", md: "none" }}
-        css={{
-          paddingBottom: "env(safe-area-inset-bottom, 0)",
-        }}
       >
         <Button
           type="button"

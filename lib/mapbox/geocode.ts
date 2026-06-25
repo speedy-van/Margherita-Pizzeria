@@ -31,6 +31,8 @@ interface MapboxFeature {
   id?: string;
   place_name: string;
   text?: string;
+  // For id="address.*" features Mapbox v5 returns the house number here.
+  address?: string;
   center: [number, number]; // [lng, lat]
   context?: MapboxContextEntry[];
   properties?: { accuracy?: string };
@@ -250,6 +252,14 @@ export async function measureCoordinatesAgainstDelivery(
   };
 }
 
+export type SuggestionKind =
+  | "address"
+  | "postcode"
+  | "place"
+  | "locality"
+  | "neighborhood"
+  | "other";
+
 export interface AutocompleteSuggestion {
   id: string;
   label: string;
@@ -257,6 +267,9 @@ export interface AutocompleteSuggestion {
   postcode?: string;
   lat: number;
   lng: number;
+  kind: SuggestionKind;
+  /** True only when the result is a full street address with a house number. */
+  hasHouseNumber: boolean;
 }
 
 export type AutocompleteResult =
@@ -320,6 +333,19 @@ export async function autocompleteAddressSuggestions(
   features.forEach((f, idx) => {
     const [lng, lat] = f.center ?? [Number.NaN, Number.NaN];
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const kind: SuggestionKind = (() => {
+      const id = typeof f.id === "string" ? f.id : "";
+      if (id.startsWith("address")) return "address";
+      if (id.startsWith("postcode")) return "postcode";
+      if (id.startsWith("place")) return "place";
+      if (id.startsWith("locality")) return "locality";
+      if (id.startsWith("neighborhood")) return "neighborhood";
+      return "other";
+    })();
+    const hasHouseNumber =
+      kind === "address" &&
+      typeof f.address === "string" &&
+      f.address.trim().length > 0;
     suggestions.push({
       id: typeof f.id === "string" && f.id.length > 0 ? f.id : `${idx}-${f.place_name}`,
       label: f.place_name,
@@ -327,6 +353,8 @@ export async function autocompleteAddressSuggestions(
       postcode: extractPostcode(f),
       lat,
       lng,
+      kind,
+      hasHouseNumber,
     });
   });
 

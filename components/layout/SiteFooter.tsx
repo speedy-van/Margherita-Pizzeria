@@ -5,12 +5,13 @@ import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 
 import {
-  businessHoursFallback,
   contactDetails,
   restaurantLocation,
   siteConfig,
   socialLinks,
 } from "@/lib/config/site";
+import { DEFAULT_OPENING_HOURS } from "@/lib/utils/shop-hours";
+import type { OpeningHours, OpeningHoursDay } from "@/types/database";
 import type { FooterLinkGroup } from "@/types/site";
 
 const FOOTER_GROUPS: FooterLinkGroup[] = [
@@ -19,7 +20,7 @@ const FOOTER_GROUPS: FooterLinkGroup[] = [
     links: [
       // Start-of-flow CTA: ordering begins on /menu.
       { label: "Order delivery", href: "/menu" },
-      { label: "Collection", href: "/lp/collection" },
+      { label: "Collection", href: "/order" },
       { label: "Menu", href: "/menu" },
     ],
   },
@@ -36,11 +37,58 @@ const FOOTER_GROUPS: FooterLinkGroup[] = [
     links: [
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },
+      { label: "Privacy Policy", href: "/privacy" },
     ],
   },
 ];
 
-export function SiteFooter() {
+const FOOTER_DAYS: { key: keyof OpeningHours; label: string }[] = [
+  { key: "monday", label: "Mon" },
+  { key: "tuesday", label: "Tue" },
+  { key: "wednesday", label: "Wed" },
+  { key: "thursday", label: "Thu" },
+  { key: "friday", label: "Fri" },
+  { key: "saturday", label: "Sat" },
+  { key: "sunday", label: "Sun" },
+];
+
+function formatEntry(entry: OpeningHoursDay): string {
+  if (entry.closed) return "closed";
+  return `${entry.open}-${entry.close === "00:00" ? "midnight" : entry.close}`;
+}
+
+function formatDaySpan(startLabel: string, endLabel: string): string {
+  return startLabel === endLabel ? startLabel : `${startLabel}-${endLabel}`;
+}
+
+function formatFooterHours(openingHours: OpeningHours | undefined): string {
+  const hours = openingHours ?? DEFAULT_OPENING_HOURS;
+  const segments: string[] = [];
+  let start = FOOTER_DAYS[0]!;
+  let end = FOOTER_DAYS[0]!;
+  let current = formatEntry(hours[start.key]);
+
+  for (const day of FOOTER_DAYS.slice(1)) {
+    const value = formatEntry(hours[day.key]);
+    if (value === current) {
+      end = day;
+      continue;
+    }
+    segments.push(`${formatDaySpan(start.label, end.label)} ${current}`);
+    start = day;
+    end = day;
+    current = value;
+  }
+
+  segments.push(`${formatDaySpan(start.label, end.label)} ${current}`);
+  return `Opening hours · ${segments.join(" · ")}`;
+}
+
+export interface SiteFooterProps {
+  openingHours?: OpeningHours;
+}
+
+export function SiteFooter({ openingHours }: SiteFooterProps) {
   const pathname = usePathname();
   const year = new Date().getFullYear();
 
@@ -69,11 +117,7 @@ export function SiteFooter() {
               <Text asChild color="fg.default" fontWeight="600">
                 <a href={`tel:${contactDetails.primaryPhoneTel}`}>{contactDetails.primaryPhone}</a>
               </Text>
-              <Text asChild color="fg.muted" fontSize="sm">
-                <a href={`tel:${contactDetails.secondaryPhoneTel}`}>
-                  {contactDetails.secondaryPhone} · {contactDetails.whatsappLabel}
-                </a>
-              </Text>
+              <Text color="fg.muted" fontSize="sm">{contactDetails.whatsappLabel}</Text>
             </Stack>
             {siteConfig.halalCertified ? (
               <Badge colorPalette="green" alignSelf="flex-start">
@@ -94,11 +138,6 @@ export function SiteFooter() {
               <Text asChild color="fg.default" _hover={{ color: "brand.fg" }} fontSize="sm">
                 <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer">
                   TikTok
-                </a>
-              </Text>
-              <Text asChild color="fg.default" _hover={{ color: "brand.fg" }} fontSize="sm">
-                <a href={socialLinks.deliveroo} target="_blank" rel="noopener noreferrer">
-                  Deliveroo
                 </a>
               </Text>
             </HStack>
@@ -136,8 +175,7 @@ export function SiteFooter() {
               © {year} {siteConfig.name}. All rights reserved.
             </Text>
             <Text color="fg.muted" fontSize="sm" textAlign={{ base: "left", md: "right" }}>
-              Typical hours · {businessHoursFallback[0].day}–{businessHoursFallback[4].day}{" "}
-              {businessHoursFallback[0].open}–{businessHoursFallback[0].close}
+              {formatFooterHours(openingHours)}
             </Text>
           </SimpleGrid>
         </Box>

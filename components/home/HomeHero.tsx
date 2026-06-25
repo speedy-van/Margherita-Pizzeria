@@ -5,6 +5,7 @@ import {
   Button,
   Container,
   HStack,
+  SimpleGrid,
   Stack,
   Text,
 } from "@chakra-ui/react";
@@ -20,6 +21,12 @@ const MotionBox = motion.create(Box);
 
 export interface HomeHeroProps {
   backgroundImageUrl?: string | null;
+  menuPreviewCategories?: {
+    id: string;
+    name: string;
+    itemCount: number;
+    imageUrl: string | null;
+  }[];
 }
 
 const HERO_BADGES = [
@@ -29,7 +36,10 @@ const HERO_BADGES = [
   { icon: "⭐", label: `${siteConfig.rating} / 5` },
 ] as const;
 
-export function HomeHero({ backgroundImageUrl = null }: HomeHeroProps = {}) {
+export function HomeHero({
+  backgroundImageUrl = null,
+  menuPreviewCategories = [],
+}: HomeHeroProps = {}) {
   const reduceMotion = useReducedMotion();
   const hero = homeContent.hero;
 
@@ -292,6 +302,69 @@ export function HomeHero({ backgroundImageUrl = null }: HomeHeroProps = {}) {
               </Button>
             </NextLink>
           </HStack>
+
+          {menuPreviewCategories.length > 0 ? (
+            <Stack gap={3} paddingTop={4}>
+              <Text
+                textTransform="uppercase"
+                letterSpacing="0.14em"
+                fontSize="xs"
+                color="whiteAlpha.800"
+                fontWeight="700"
+              >
+                Browse the menu now
+              </Text>
+              <SimpleGrid columns={{ base: 2, md: 4 }} gap={3}>
+                {menuPreviewCategories.map((category) => (
+                  <NextLink
+                    key={category.id}
+                    href={`/menu#menu-cat-${category.id}`}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <Box
+                      borderRadius="xl"
+                      overflow="hidden"
+                      borderWidth="1px"
+                      borderColor="rgba(192,57,43,0.72)"
+                      backgroundColor="rgba(13,13,13,0.55)"
+                      backdropFilter="blur(8px)"
+                      minH="120px"
+                      display="flex"
+                      flexDirection="column"
+                      justifyContent="flex-end"
+                      position="relative"
+                      boxShadow="inset 0 0 0 1px rgba(255,120,104,0.35), 0 0 0 1px rgba(192,57,43,0.4), 0 0 24px rgba(192,57,43,0.45), 0 10px 24px rgba(0,0,0,0.35)"
+                      _hover={{
+                        transform: "translateY(-2px)",
+                        borderColor: "rgba(235,87,69,0.95)",
+                        boxShadow:
+                          "inset 0 0 0 1px rgba(255,150,132,0.45), 0 0 0 1px rgba(235,87,69,0.65), 0 0 34px rgba(235,87,69,0.62), 0 14px 28px rgba(0,0,0,0.42)",
+                      }}
+                      transition="all 0.18s ease"
+                      style={
+                        category.imageUrl
+                          ? {
+                              backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.72) 100%), url("${category.imageUrl.replace(/"/g, "%22")}")`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }
+                          : undefined
+                      }
+                    >
+                      <Box padding={3}>
+                        <Text color="white" fontSize="sm" fontWeight="800" lineClamp="1">
+                          {category.name}
+                        </Text>
+                        <Text color="whiteAlpha.900" fontSize="xs" fontWeight="600">
+                          {category.itemCount} dishes
+                        </Text>
+                      </Box>
+                    </Box>
+                  </NextLink>
+                ))}
+              </SimpleGrid>
+            </Stack>
+          ) : null}
         </MotionStack>
       </Container>
 

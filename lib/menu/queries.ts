@@ -80,6 +80,8 @@ function deriveDietaryTags(
   return tags;
 }
 
+const HIDDEN_ALLERGENS = new Set(["gluten", "milk"]);
+
 function toPublicItem(row: MenuItem): PublicMenuItem {
   const allergens = safeAllergens(row.allergens);
   return {
@@ -90,7 +92,7 @@ function toPublicItem(row: MenuItem): PublicMenuItem {
     pricePence: row.pricePence,
     imageUrl: row.imageUrl ?? null,
     available: row.available,
-    allergens,
+    allergens: allergens.filter((a) => !HIDDEN_ALLERGENS.has(a)),
     dietaryTags: deriveDietaryTags(row.name, row.description ?? null, allergens),
   };
 }

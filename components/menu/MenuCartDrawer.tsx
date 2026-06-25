@@ -142,7 +142,7 @@ export function MenuCartDrawer({
                     Continue to order
                   </Button>
                 ) : (
-                  <NextLink href="/order" style={{ textDecoration: "none" }}>
+                  <NextLink href="/order/checkout" style={{ textDecoration: "none" }}>
                     <Button
                       type="button"
                       width="100%"

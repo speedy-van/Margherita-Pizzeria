@@ -17,6 +17,7 @@ const config = [
       "next-env.d.ts",
       "drizzle/**",
       "public/**",
+      "tmp/**",
     ],
   },
   ...compat.extends("next/core-web-vitals"),

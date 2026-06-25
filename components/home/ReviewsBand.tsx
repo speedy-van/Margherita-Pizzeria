@@ -31,7 +31,7 @@ export function ReviewsBand() {
           <Heading as="h2" size={{ base: "lg", md: "xl" }} fontFamily="heading">
             {siteConfig.rating}★ from {siteConfig.reviewCount}+ reviews
           </Heading>
-          <Text color="fg.muted">Across Google, Uber Eats and Deliveroo.</Text>
+          <Text color="fg.muted">Across Google and Uber Eats.</Text>
         </Stack>
 
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={{ base: 5, md: 6 }}>

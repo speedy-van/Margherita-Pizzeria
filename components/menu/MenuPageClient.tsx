@@ -1,7 +1,7 @@
 "use client";
 
-import { Box, Heading, HStack, Stack, Text } from "@chakra-ui/react";
-import { useCallback, useMemo, useState } from "react";
+import { Box, Heading, HStack, SimpleGrid, Stack, Text } from "@chakra-ui/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { MenuCartButton } from "@/components/menu/MenuCartButton";
 import { MenuCartDrawer } from "@/components/menu/MenuCartDrawer";
@@ -14,12 +14,38 @@ import type {
   PublicMenuCategory,
   PublicMenuResponse,
 } from "@/lib/menu/types";
+import {
+  computeShopStatus,
+  type ShopStatus,
+} from "@/lib/utils/shop-hours";
+import type { OpeningHours } from "@/types/database";
 
 export interface MenuPageClientProps {
   initialMenu: PublicMenuResponse;
+  openingHours: OpeningHours;
+  initialShopStatus: ShopStatus;
 }
 
-export function MenuPageClient({ initialMenu }: MenuPageClientProps) {
+const DAY_ORDER: { key: keyof OpeningHours; label: string }[] = [
+  { key: "monday", label: "Monday" },
+  { key: "tuesday", label: "Tuesday" },
+  { key: "wednesday", label: "Wednesday" },
+  { key: "thursday", label: "Thursday" },
+  { key: "friday", label: "Friday" },
+  { key: "saturday", label: "Saturday" },
+  { key: "sunday", label: "Sunday" },
+];
+
+function formatHours(open: string, close: string): string {
+  const closeLabel = close === "00:00" ? "midnight" : close;
+  return `${open} – ${closeLabel}`;
+}
+
+export function MenuPageClient({
+  initialMenu,
+  openingHours,
+  initialShopStatus,
+}: MenuPageClientProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | "all">(
     "all",
   );
@@ -28,8 +54,57 @@ export function MenuPageClient({ initialMenu }: MenuPageClientProps) {
   >([]);
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [shopStatus, setShopStatus] = useState<ShopStatus>(initialShopStatus);
+  const [closedAttempt, setClosedAttempt] = useState(false);
 
   const cart = useMenuCart();
+
+  useEffect(() => {
+    const tick = () => setShopStatus(computeShopStatus(new Date(), openingHours));
+    tick();
+    const id = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(id);
+  }, [openingHours]);
+
+  useEffect(() => {
+    const categoryIds = new Set(initialMenu.categories.map((category) => category.id));
+
+    const applyHashCategory = () => {
+      const hash = window.location.hash;
+      if (!hash) {
+        setSelectedCategoryId("all");
+        return;
+      }
+
+      const raw = hash.startsWith("#") ? hash.slice(1) : hash;
+      const candidate = raw.startsWith("menu-cat-") ? raw.slice("menu-cat-".length) : raw;
+      if (categoryIds.has(candidate)) {
+        setSelectedCategoryId(candidate);
+      }
+    };
+
+    applyHashCategory();
+    window.addEventListener("hashchange", applyHashCategory);
+    return () => window.removeEventListener("hashchange", applyHashCategory);
+  }, [initialMenu.categories]);
+
+  useEffect(() => {
+    if (selectedCategoryId === "all") {
+      if (window.location.hash) {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+      return;
+    }
+
+    const nextHash = `#menu-cat-${selectedCategoryId}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${window.location.search}${nextHash}`,
+      );
+    }
+  }, [selectedCategoryId]);
 
   const handleToggleAllergen = useCallback((allergen: string) => {
     setSelectedAllergensToAvoid((prev) =>
@@ -41,10 +116,17 @@ export function MenuPageClient({ initialMenu }: MenuPageClientProps) {
 
   const handleAdd = useCallback(
     (input: AddToCartInput) => {
+      if (!shopStatus.isOpen) {
+        setClosedAttempt(true);
+        if (typeof window !== "undefined") {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        return;
+      }
       cart.addItem(input, 1);
       setCartOpen(true);
     },
-    [cart],
+    [cart, shopStatus.isOpen],
   );
 
   const filteredCategories = useMemo<PublicMenuCategory[]>(() => {
@@ -78,7 +160,58 @@ export function MenuPageClient({ initialMenu }: MenuPageClientProps) {
 
   return (
     <>
-      <Stack gap={{ base: 6, md: 8 }}>
+      <Stack
+        gap={{ base: 6, md: 8 }}
+        paddingBottom={{ base: "calc(env(safe-area-inset-bottom) + 104px)", md: 0 }}
+      >
+        {!shopStatus.isOpen ? (
+          <Box
+            role="alert"
+            borderWidth="1px"
+            borderColor="red.500"
+            bg="red.50"
+            color="red.900"
+            borderRadius="xl"
+            padding={{ base: 4, md: 5 }}
+          >
+            <Heading as="h2" size="md" mb={1}>
+              Sorry, we&rsquo;re closed for online ordering
+            </Heading>
+            <Text fontSize="sm" mb={3}>
+              {shopStatus.opensAt && shopStatus.opensDayLabel
+                ? `Online ordering reopens ${shopStatus.opensDayLabel} at ${shopStatus.opensAt}. You can browse the menu, but items can't be added to the cart until then.`
+                : "Please check back during our opening hours."}
+              {closedAttempt
+                ? " You tried to add an item — we'll be ready to take your order when we reopen."
+                : ""}
+            </Text>
+            <Box
+              borderTopWidth="1px"
+              borderColor="red.200"
+              paddingTop={3}
+            >
+              <Text fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="wide" mb={2}>
+                Opening hours
+              </Text>
+              <SimpleGrid columns={{ base: 1, sm: 2 }} gap={1} fontSize="sm">
+                {DAY_ORDER.map(({ key, label }) => {
+                  const entry = openingHours[key];
+                  return (
+                    <HStack key={key} justify="space-between" gap={4}>
+                      <Text as="span" fontWeight="medium">{label}</Text>
+                      <Text as="span">
+                        {entry.closed
+                          ? "Closed"
+                          : formatHours(entry.open, entry.close)}
+                      </Text>
+                    </HStack>
+                  );
+                })}
+              </SimpleGrid>
+            </Box>
+          </Box>
+        ) : null}
+
         <HStack
           justify="space-between"
           align="center"
@@ -104,14 +237,27 @@ export function MenuPageClient({ initialMenu }: MenuPageClientProps) {
           </Box>
         </HStack>
 
-        <MenuCategoryTabs
-          categories={initialMenu.categories.map((c) => ({
-            id: c.id,
-            name: c.name,
-          }))}
-          selectedCategoryId={selectedCategoryId}
-          onChange={setSelectedCategoryId}
-        />
+        <Box
+          position={{ base: "static", md: "sticky" }}
+          top={{ md: "86px" }}
+          zIndex={{ md: 20 }}
+          bg="bg.default"
+          borderWidth="1px"
+          borderColor="border"
+          borderRadius={{ base: "2xl", md: "xl" }}
+          padding={{ base: 4, md: 4 }}
+          boxShadow={{ md: "sm" }}
+        >
+          <MenuCategoryTabs
+            categories={initialMenu.categories.map((c) => ({
+              id: c.id,
+              name: c.name,
+              itemCount: c.items.length,
+            }))}
+            selectedCategoryId={selectedCategoryId}
+            onChange={setSelectedCategoryId}
+          />
+        </Box>
 
         <MenuFilters
           selectedAllergensToAvoid={selectedAllergensToAvoid}
@@ -143,7 +289,12 @@ export function MenuPageClient({ initialMenu }: MenuPageClientProps) {
         {/* Mobile-only spacer so the sticky cart button never overlaps content. */}
         <Box
           aria-hidden
-          height={{ base: cart.totalQuantity > 0 ? "20" : "0", md: "0" }}
+          height={{
+            base: cart.totalQuantity > 0
+              ? "calc(env(safe-area-inset-bottom) + 88px)"
+              : "0",
+            md: "0",
+          }}
         />
       </Stack>
 

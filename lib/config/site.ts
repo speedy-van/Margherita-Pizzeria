@@ -17,14 +17,17 @@ export const restaurantLocation = {
   postcode: "G31 3BU",
   country: "GB",
   fullAddress: "652 Alexandra Parade, Dennistoun, Glasgow, G31 3BU",
+  latitude: 55.8717,
+  longitude: -4.2169,
 } as const;
 
 export const contactDetails = {
-  primaryPhone: "0141 378 0909",
-  primaryPhoneTel: "+441413780909",
-  secondaryPhone: "07746 870341",
+  primaryPhone: "+44 7746 870341",
+  primaryPhoneTel: "+447746870341",
+  secondaryPhone: "+44 7746 870341",
   secondaryPhoneTel: "+447746870341",
-  whatsappLabel: "WhatsApp / backup line",
+  whatsappLabel: "Call or WhatsApp",
+  whatsappUrl: "https://wa.me/447746870341",
   email: "hello@margheritapizzeria.co.uk",
 } as const;
 
@@ -32,8 +35,6 @@ export const socialLinks = {
   facebook: "https://www.facebook.com/p/Margherita-pizzeria-61584527125021/",
   instagram: "https://www.instagram.com/margherita.pizzaria1/",
   tiktok: "https://www.tiktok.com/@margherita.pizzaria1",
-  deliveroo:
-    "https://deliveroo.co.uk/menu/Glasgow/dennistoun/taj-tandoori-alexandra-parade?geohash=gcuvzb88sp7q",
 } as const;
 
 export const deliveryRules = {
@@ -56,14 +57,18 @@ export const businessHoursFallback = [
   { day: "Sunday", open: "11:00", close: "23:00" },
 ] as const;
 
+function normalizeSiteUrl(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
 export const siteConfig = {
   name: "Margherita Pizzeria",
   shortName: "Margherita",
   domain: "margheritapizza.uk",
   legacyDomain: "margheritapizzeria.co.uk",
-  url: env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  url: normalizeSiteUrl(env.NEXT_PUBLIC_SITE_URL || "https://www.margheritapizza.uk"),
   description:
-    "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour cold-proved dough, stone-baked, halal certified. Free delivery in G31, £3.99 outside (up to 4 miles).",
+    "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour cold-proved dough, stone-baked and halal certified. Pizza delivery across Glasgow's East End for a £3.99 flat fee (up to 4 miles).",
   tagline: "Sourdough. Hand-stretched. Stone oven.",
   address: restaurantLocation.fullAddress,
   city: restaurantLocation.city,

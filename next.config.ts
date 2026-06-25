@@ -7,9 +7,21 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
-  // Dev-only CORS so the Expo debug harness at http://localhost:8081 can
-  // call /api/* from a browser. Production returns no CORS headers, so the
-  // public site / native Kotlin app behaviour is unchanged.
+  // Legacy Google Ads landing URLs collapsed into the canonical order flow.
+  // Public ad URLs are now only /order and /order/success.
+  async redirects() {
+    return [
+      { source: "/lp/order-now", destination: "/order", permanent: true },
+      { source: "/lp/collection", destination: "/order", permanent: true },
+      {
+        source: "/lp/order-now/success",
+        destination: "/order/success",
+        permanent: true,
+      },
+    ];
+  },
+  // Development-only CORS for local admin tooling. Production returns no
+  // CORS headers, so the public site and native apps are unchanged.
   async headers() {
     if (!isDev) return [];
     return [

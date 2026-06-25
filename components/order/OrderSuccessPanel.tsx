@@ -36,15 +36,6 @@ export function OrderSuccessPanel({ order }: OrderSuccessPanelProps) {
         padding={{ base: 5, md: 6 }}
       >
         <Stack gap={3}>
-          <Text
-            textTransform="uppercase"
-            letterSpacing="0.2em"
-            fontSize="xs"
-            color="brand.fg"
-            fontWeight="700"
-          >
-            Order #{order.reference ?? order.id.slice(0, 8)}
-          </Text>
           <Heading as="h2" size="md" color="fg.default">
             {statusLabel}
           </Heading>

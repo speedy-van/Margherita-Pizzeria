@@ -52,7 +52,14 @@ export function OrderSubmitBar({
           size="lg"
           width="full"
         >
-          {loading ? <Spinner size="sm" /> : submitLabel}
+          {loading ? (
+            <HStack gap={2}>
+              <Spinner size="sm" />
+              <Text as="span">Processing...</Text>
+            </HStack>
+          ) : (
+            submitLabel
+          )}
         </Button>
         {disabled && disabledReason && !loading ? (
           <Text fontSize="xs" color="fg.muted" textAlign="center">

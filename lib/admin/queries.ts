@@ -55,6 +55,7 @@ import {
   type CreateMenuItemInput,
   type UpdateMenuItemInput,
 } from "@/lib/validations/menu";
+import { coerceOpeningHours } from "@/lib/utils/shop-hours";
 import {
   createMenuItem as createMenuItemQuery,
   deleteMenuItem as deleteMenuItemQuery,
@@ -82,6 +83,7 @@ function toOrderListItem(row: Order): AdminOrderListItem {
     totalPence: row.totalPence,
     paymentMethod: row.paymentMethod,
     itemCount,
+    items,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -295,10 +297,15 @@ export { validateCreateMenuItemInput, validateUpdateMenuItemInput };
 /* ─────────────── Settings ─────────────── */
 
 const SETTINGS_KEYS = {
+  acceptingOnlineOrders: "accepting_online_orders",
+  collectionOpen: "collection_open",
+  deliveryOpen: "delivery_open",
+  busyMode: "busy_mode",
   minDeliveryOrderPence: "min_delivery_order_pence",
   deliveryFeePence: "delivery_fee_pence",
   prepTimeMinutes: "prep_time_minutes",
   deliveryTimeMinutes: "delivery_time_minutes",
+  customerMessage: "customer_message",
   depositEnabled: "deposit_enabled",
   depositAmountPence: "deposit_amount_pence",
   openingHours: "opening_hours",
@@ -327,43 +334,16 @@ function asBool(value: unknown, fallback: boolean): boolean {
   return fallback;
 }
 
-function defaultOpeningHours(): OpeningHours {
-  return {
-    monday: { open: "16:00", close: "23:00" },
-    tuesday: { open: "16:00", close: "23:00" },
-    wednesday: { open: "16:00", close: "23:00" },
-    thursday: { open: "16:00", close: "23:00" },
-    friday: { open: "16:00", close: "23:30" },
-    saturday: { open: "12:00", close: "23:30" },
-    sunday: { open: "12:00", close: "22:30" },
-  };
+function asBusyMode(value: unknown): "normal" | "busy" | "very_busy" {
+  return value === "busy" || value === "very_busy" ? value : "normal";
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
 }
 
 function asOpeningHours(value: unknown): OpeningHours {
-  if (!value || typeof value !== "object") return defaultOpeningHours();
-  const days: (keyof OpeningHours)[] = [
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-    "sunday",
-  ];
-  const fallback = defaultOpeningHours();
-  const out = { ...fallback };
-  const obj = value as Record<string, unknown>;
-  for (const day of days) {
-    const entry = obj[day];
-    if (entry && typeof entry === "object") {
-      const e = entry as Record<string, unknown>;
-      const open = typeof e.open === "string" ? e.open : fallback[day].open;
-      const close = typeof e.close === "string" ? e.close : fallback[day].close;
-      const closed = typeof e.closed === "boolean" ? e.closed : undefined;
-      out[day] = { open, close, ...(closed !== undefined ? { closed } : {}) };
-    }
-  }
-  return out;
+  return coerceOpeningHours(value);
 }
 
 export async function getAdminSettings(): Promise<AdminSettings> {
@@ -374,10 +354,15 @@ export async function getAdminSettings(): Promise<AdminSettings> {
   const map = new Map<string, unknown>();
   for (const r of rows) map.set(r.key, r.value);
   return {
+    acceptingOnlineOrders: asBool(map.get(SETTINGS_KEYS.acceptingOnlineOrders), true),
+    collectionOpen: asBool(map.get(SETTINGS_KEYS.collectionOpen), true),
+    deliveryOpen: asBool(map.get(SETTINGS_KEYS.deliveryOpen), true),
+    busyMode: asBusyMode(map.get(SETTINGS_KEYS.busyMode)),
     minDeliveryOrderPence: asNumber(map.get(SETTINGS_KEYS.minDeliveryOrderPence), 1000),
     deliveryFeePence: asNumber(map.get(SETTINGS_KEYS.deliveryFeePence), 250),
     prepTimeMinutes: asNumber(map.get(SETTINGS_KEYS.prepTimeMinutes), 25),
     deliveryTimeMinutes: asNumber(map.get(SETTINGS_KEYS.deliveryTimeMinutes), 45),
+    customerMessage: asString(map.get(SETTINGS_KEYS.customerMessage)),
     depositEnabled: asBool(map.get(SETTINGS_KEYS.depositEnabled), false),
     depositAmountPence: asNumber(map.get(SETTINGS_KEYS.depositAmountPence), 0),
     openingHours: asOpeningHours(map.get(SETTINGS_KEYS.openingHours)),
@@ -403,6 +388,14 @@ async function upsertSetting(key: string, value: unknown): Promise<void> {
 export async function updateAdminSettings(
   input: AdminSettingsUpdateInput,
 ): Promise<AdminSettings> {
+  if (typeof input.acceptingOnlineOrders === "boolean")
+    await upsertSetting(SETTINGS_KEYS.acceptingOnlineOrders, input.acceptingOnlineOrders);
+  if (typeof input.collectionOpen === "boolean")
+    await upsertSetting(SETTINGS_KEYS.collectionOpen, input.collectionOpen);
+  if (typeof input.deliveryOpen === "boolean")
+    await upsertSetting(SETTINGS_KEYS.deliveryOpen, input.deliveryOpen);
+  if (typeof input.busyMode === "string")
+    await upsertSetting(SETTINGS_KEYS.busyMode, input.busyMode);
   if (typeof input.minDeliveryOrderPence === "number")
     await upsertSetting(SETTINGS_KEYS.minDeliveryOrderPence, input.minDeliveryOrderPence);
   if (typeof input.deliveryFeePence === "number")
@@ -411,6 +404,8 @@ export async function updateAdminSettings(
     await upsertSetting(SETTINGS_KEYS.prepTimeMinutes, input.prepTimeMinutes);
   if (typeof input.deliveryTimeMinutes === "number")
     await upsertSetting(SETTINGS_KEYS.deliveryTimeMinutes, input.deliveryTimeMinutes);
+  if (typeof input.customerMessage === "string")
+    await upsertSetting(SETTINGS_KEYS.customerMessage, input.customerMessage);
   if (typeof input.depositEnabled === "boolean")
     await upsertSetting(SETTINGS_KEYS.depositEnabled, input.depositEnabled);
   if (typeof input.depositAmountPence === "number")

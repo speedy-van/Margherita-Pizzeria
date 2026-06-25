@@ -87,10 +87,15 @@ export type OpeningHours = Record<
 >;
 
 export interface PublicSettings {
+  acceptingOnlineOrders: boolean;
+  collectionOpen: boolean;
+  deliveryOpen: boolean;
+  busyMode: "normal" | "busy" | "very_busy";
   minDeliveryOrderPence: number;
   deliveryFeePence: number;
   prepTimeMinutes: number;
   deliveryTimeMinutes: number;
+  customerMessage: string;
   depositEnabled: boolean;
   depositAmountPence: number;
   openingHours: OpeningHours;

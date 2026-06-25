@@ -49,6 +49,11 @@ import type { OpeningHours } from "@/types/database";
 
 export interface OrderPageClientProps {
   initialSettings: {
+    acceptingOnlineOrders: boolean;
+    collectionOpen: boolean;
+    deliveryOpen: boolean;
+    busyMode: "normal" | "busy" | "very_busy";
+    customerMessage: string;
     minDeliveryOrderPence: number;
     deliveryFeePence: number;
   };
@@ -142,7 +147,37 @@ export function OrderPageClient({
     mode === "delivery" &&
     cart.subtotalPence < initialSettings.minDeliveryOrderPence;
 
+  const storeControlReason = useMemo(() => {
+    const message = initialSettings.customerMessage.trim();
+    if (!initialSettings.acceptingOnlineOrders) {
+      return (
+        message ||
+        "Online ordering is paused right now. Please call the restaurant if you need help."
+      );
+    }
+    if (mode === "delivery" && !initialSettings.deliveryOpen) {
+      return (
+        message ||
+        "Delivery orders are paused right now. Please choose collection or try again later."
+      );
+    }
+    if (mode === "collection" && !initialSettings.collectionOpen) {
+      return (
+        message ||
+        "Collection orders are paused right now. Please choose delivery or try again later."
+      );
+    }
+    return null;
+  }, [
+    initialSettings.acceptingOnlineOrders,
+    initialSettings.collectionOpen,
+    initialSettings.customerMessage,
+    initialSettings.deliveryOpen,
+    mode,
+  ]);
+
   const validationReady = useMemo(() => {
+    if (storeControlReason) return false;
     if (cart.items.length === 0) return false;
     if (!customer.name.trim() || !customer.email.trim() || !customer.phone.trim()) {
       return false;
@@ -163,9 +198,11 @@ export function OrderPageClient({
     validated,
     deliveryBelowMin,
     collectionTime,
+    storeControlReason,
   ]);
 
   const disabledReason = useMemo(() => {
+    if (storeControlReason) return storeControlReason;
     if (!shopStatus.isOpen) return formatClosedMessage(shopStatus);
     if (cart.items.length === 0) return "Your cart is empty.";
     if (!customer.name.trim()) return "Add your name to continue.";
@@ -193,10 +230,19 @@ export function OrderPageClient({
     collectionTime,
     addressPendingReason,
     shopStatus,
+    storeControlReason,
   ]);
 
   const handleSubmit = useCallback(async () => {
     if (submitLockedRef.current || submitState.loading) return;
+    if (storeControlReason) {
+      setSubmitState({
+        loading: false,
+        serverError: storeControlReason,
+        serverFieldErrors: null,
+      });
+      return;
+    }
     if (!shopStatus.isOpen) {
       setSubmitState({
         loading: false,
@@ -288,6 +334,7 @@ export function OrderPageClient({
     validated,
     discount,
     shopStatus,
+    storeControlReason,
   ]);
 
   if (!cart.isHydrated) {
@@ -341,6 +388,40 @@ export function OrderPageClient({
               {shopStatus.opensAt && shopStatus.opensDayLabel
                 ? `Online ordering reopens ${shopStatus.opensDayLabel} at ${shopStatus.opensAt}. You can still browse the menu and prepare your cart — checkout will unlock automatically.`
                 : "Please check back during our opening hours."}
+            </Text>
+          </Box>
+        ) : null}
+        {storeControlReason ? (
+          <Box
+            role="alert"
+            borderWidth="1px"
+            borderColor="brand.muted"
+            bg="brand.subtle"
+            borderRadius="md"
+            padding={4}
+          >
+            <Text fontWeight="semibold" fontSize="md" color="fg.default">
+              Online ordering update
+            </Text>
+            <Text fontSize="sm" mt={1} color="fg.default">
+              {storeControlReason}
+            </Text>
+          </Box>
+        ) : null}
+        {!storeControlReason && initialSettings.busyMode !== "normal" ? (
+          <Box
+            role="status"
+            borderWidth="1px"
+            borderColor="brand.muted"
+            bg="brand.subtle"
+            borderRadius="md"
+            padding={3}
+          >
+            <Text fontSize="sm" color="fg.default">
+              {initialSettings.customerMessage.trim() ||
+                (initialSettings.busyMode === "very_busy"
+                  ? "We are very busy right now, so orders may take a little longer."
+                  : "We are busy right now, so orders may take a little longer.")}
             </Text>
           </Box>
         ) : null}

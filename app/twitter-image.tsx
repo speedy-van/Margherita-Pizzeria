@@ -8,7 +8,7 @@ export const contentType = OG_CONTENT_TYPE;
 export default function Image() {
   return renderOgImage({
     title: "Sourdough pizza · Halal · Dennistoun",
-    subtitle: "Delivery within 5 miles of G31 · Collection · Dine-in",
+    subtitle: "Delivery within 4 miles of G31 · Collection · Dine-in",
     showRating: true,
   });
 }

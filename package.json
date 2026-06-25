@@ -10,12 +10,14 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx --env-file=.env.local lib/db/seed.ts"
+    "db:seed": "tsx --env-file=.env.local lib/db/seed.ts",
+    "qr:generate": "tsx scripts/generate-qr.ts"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.2.3",
     "@emotion/react": "^11.13.5",
     "@neondatabase/serverless": "^0.10.4",
+    "@react-pdf/renderer": "^4.5.1",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.40.0",
@@ -35,11 +37,13 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/mapbox-gl": "^3.4.0",
     "@types/node": "^22.10.1",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.16.0",
     "eslint-config-next": "^15.0.3",
+    "qrcode": "^1.5.4",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

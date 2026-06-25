@@ -61,7 +61,7 @@ function readEnv(): EnvShape {
 
   const isProd = nodeEnv === "production";
 
-  const defaultSiteUrl = isProd ? "" : "http://localhost:3000";
+  const defaultSiteUrl = isProd ? "" : "https://www.margheritapizza.uk";
 
   const raw: EnvShape = {
     NODE_ENV: nodeEnv,

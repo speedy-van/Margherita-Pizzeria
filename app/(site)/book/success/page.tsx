@@ -2,6 +2,7 @@ import { Container, Stack } from "@chakra-ui/react";
 import type { Metadata } from "next";
 
 import { BookingSuccessPanel } from "@/components/booking/BookingSuccessPanel";
+import { LandingConversionEvents } from "@/components/landing/LandingConversionEvents";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageShell } from "@/components/ui/PageShell";
@@ -74,6 +75,7 @@ export default async function BookSuccessPage({ searchParams }: PageProps) {
     }
     return (
       <Container maxW="3xl" paddingBlock={{ base: 6, md: 10 }}>
+        <LandingConversionEvents type="subscribe" orderId={idCheck.data.id} />
         <Stack gap={6}>
           <BookingSuccessPanel booking={summary} />
         </Stack>

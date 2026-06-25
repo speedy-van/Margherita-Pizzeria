@@ -90,6 +90,51 @@ export async function POST(request: Request) {
     );
   }
 
+  const settings = await getOrderSettings();
+  const pausedMessage = settings.customerMessage.trim();
+  if (!settings.acceptingOnlineOrders) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "ONLINE_ORDERING_PAUSED",
+          message:
+            pausedMessage ||
+            "Online ordering is paused right now. Please call the restaurant if you need help.",
+        },
+      },
+      { status: 409 },
+    );
+  }
+  if (input.type === "collection" && !settings.collectionOpen) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "COLLECTION_PAUSED",
+          message:
+            pausedMessage ||
+            "Collection orders are paused right now. Please choose delivery or try again later.",
+        },
+      },
+      { status: 409 },
+    );
+  }
+  if (input.type === "delivery" && !settings.deliveryOpen) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "DELIVERY_PAUSED",
+          message:
+            pausedMessage ||
+            "Delivery orders are paused right now. Please choose collection or try again later.",
+        },
+      },
+      { status: 409 },
+    );
+  }
+
   // Validate cart against DB and recalculate prices server-side.
   const cartResult = await validateAndPriceCart(input.cartItems);
   if (!cartResult.ok) {
@@ -106,7 +151,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const settings = await getOrderSettings();
   const subtotalForDiscount = cartResult.items.reduce(
     (sum, i) => sum + i.unitPricePence * i.quantity,
     0,

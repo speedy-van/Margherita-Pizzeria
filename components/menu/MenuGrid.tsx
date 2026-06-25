@@ -29,7 +29,13 @@ export function MenuGrid({ categories, onAdd }: MenuGridProps) {
   return (
     <Stack gap={{ base: 10, md: 14 }}>
       {visible.map((category) => (
-        <Box key={category.id} as="section" aria-labelledby={`cat-${category.id}`}>
+        <Box
+          key={category.id}
+          as="section"
+          id={`menu-cat-${category.id}`}
+          aria-labelledby={`cat-${category.id}`}
+          scrollMarginTop={{ base: "110px", md: "140px" }}
+        >
           <Heading
             as="h2"
             id={`cat-${category.id}`}

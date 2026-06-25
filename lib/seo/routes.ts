@@ -29,7 +29,7 @@ export const publicSeoRoutes: readonly PublicSeoRoute[] = [
     changeFrequency: "weekly",
     title: "Sourdough Pizza, Halal, in Dennistoun | Margherita Pizzeria",
     description:
-      "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour stone-baked dough, halal certified. Free delivery in G31, £3.99 outside (up to 4 miles).",
+      "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour cold-proved dough, stone-baked and halal certified. Pizza delivery across Glasgow's East End (£3.99, up to 4 miles), collection and dine-in.",
   },
   {
     path: "/menu",
@@ -37,15 +37,15 @@ export const publicSeoRoutes: readonly PublicSeoRoute[] = [
     changeFrequency: "weekly",
     title: "Menu · Sourdough Pizza, Kebab, Burgers | Margherita Pizzeria",
     description:
-      "Stone-baked sourdough pizzas, kebabs, burgers, pasta and grill. Halal certified. Delivery in G31 (free) and 4 miles around Dennistoun for £3.99.",
+      "Stone-baked sourdough pizzas, kebabs, burgers, pasta and grill. Halal certified. Delivery across Dennistoun and Glasgow's East End for a £3.99 flat fee (up to 4 miles).",
   },
   {
     path: "/order",
     priority: 0.9,
     changeFrequency: "daily",
-    title: "Order Online · Free Delivery G31 | Margherita Pizzeria",
+    title: "Order Online · Halal Sourdough Pizza Glasgow | Margherita Pizzeria",
     description:
-      "Order halal sourdough pizza, kebabs and burgers online from Margherita Pizzeria. Free delivery in G31, £3.99 outside (up to 4 miles).",
+      "Order halal sourdough pizza, kebabs and burgers online from Margherita Pizzeria. £3.99 flat delivery across Dennistoun and Glasgow's East End (up to 4 miles).",
   },
   {
     path: "/book",
@@ -103,7 +103,7 @@ export const noIndexRoutes: readonly string[] = [
 ] as const;
 
 function trimTrailingSlash(input: string): string {
-  return input.replace(/\/+$/, "");
+  return input.trim().replace(/\/+$/, "");
 }
 
 /**

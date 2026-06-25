@@ -1,5 +1,5 @@
 import { siteConfig } from "@/lib/config/site";
-import { env, isDevelopment } from "@/lib/env";
+import { env } from "@/lib/env";
 import type {
   BookingStatus,
   OrderStatus,
@@ -12,7 +12,6 @@ import type {
 export function getSiteUrl(): string {
   const fromEnv = env.NEXT_PUBLIC_SITE_URL.trim();
   if (fromEnv) return fromEnv.replace(/\/+$/, "");
-  if (isDevelopment) return "http://localhost:3000";
   return siteConfig.url.replace(/\/+$/, "");
 }
 

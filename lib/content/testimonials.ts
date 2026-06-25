@@ -1,12 +1,12 @@
 /**
  * Customer testimonials carried over from margheritapizzeria.co.uk.
- * 4.2★ across Google, Uber Eats and Deliveroo (62+ reviews).
+ * 4.2★ across Google and Uber Eats (62+ reviews).
  */
 
 export interface Testimonial {
   id: string;
   name: string;
-  source: "GOOGLE" | "DELIVEROO" | "UBER_EATS";
+  source: "GOOGLE" | "UBER_EATS";
   rating: 1 | 2 | 3 | 4 | 5;
   quote: string;
 }
@@ -23,7 +23,7 @@ export const testimonials: ReadonlyArray<Testimonial> = [
   {
     id: "ayesha-rahman",
     name: "Ayesha Rahman",
-    source: "DELIVEROO",
+    source: "UBER_EATS",
     rating: 5,
     quote:
       "The King Smashburger is the best burger I've had in Glasgow. Proper smash patty, real cheddar, chips were perfectly crispy. Got it twice this week already.",
@@ -39,7 +39,7 @@ export const testimonials: ReadonlyArray<Testimonial> = [
   {
     id: "jamie-mackenzie",
     name: "Jamie Mackenzie",
-    source: "DELIVEROO",
+    source: "UBER_EATS",
     rating: 5,
     quote:
       "Mixed grill was unreal. Three proper skewers, wings, the lot. Easily enough for two people. Best takeaway on Alexandra Parade by a mile.",
@@ -63,7 +63,7 @@ export const testimonials: ReadonlyArray<Testimonial> = [
   {
     id: "sara-khalid",
     name: "Sara Khalid",
-    source: "DELIVEROO",
+    source: "UBER_EATS",
     rating: 5,
     quote:
       "Ordered the Four Cheese pizza and the Golden Box for a family night. Loads of food for the price. Pizza was fresh and hot out the oven.",
@@ -71,7 +71,7 @@ export const testimonials: ReadonlyArray<Testimonial> = [
   {
     id: "ryan-mclean",
     name: "Ryan McLean",
-    source: "DELIVEROO",
+    source: "UBER_EATS",
     rating: 5,
     quote:
       "The Bolognese pizza is a winner every time. Ordered it three weeks running now. Stone baked base is way better than any of the chain pizza places. Always fast delivery.",

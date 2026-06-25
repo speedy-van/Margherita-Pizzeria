@@ -50,9 +50,9 @@ export interface HomeContent {
 
 export const homeContent: HomeContent = {
   hero: {
-    eyebrow: "Glasgow · Alexandra Parade · Halal certified",
-    headline: "Authentic Italian pizza, Glasgow made.",
-    body: `Sourdough base with a 24-hour cold rise. Hand-stretched, stone-baked, halal certified. Free delivery in G31 and £3.99 outside (up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}), collect from ${siteConfig.address}, or book one of our ${siteConfig.tablesCount} tables.`,
+    eyebrow: "Dennistoun · Alexandra Parade · Halal certified pizzeria",
+    headline: "Authentic Italian sourdough pizza in Glasgow's East End.",
+    body: `Hand-stretched 24-hour sourdough, stone-baked in Dennistoun and fully halal certified. Order pizza delivery across Glasgow's East End (up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}, £3.99 flat fee), collect from ${siteConfig.address}, or book one of our ${siteConfig.tablesCount} tables on Alexandra Parade.`,
     primaryCta: { label: "Order now", href: "/menu" },
     secondaryCta: { label: "View the menu", href: "/menu" },
     tertiaryCta: { label: `Call ${siteConfig.phone}`, href: `tel:${siteConfig.phoneTel}` },
@@ -62,8 +62,8 @@ export const homeContent: HomeContent = {
     { label: "Trained in Italy", detail: "Three years with master pizzaiolos." },
     { label: "Halal Certified", detail: "All meats halal." },
     { label: "Open till Midnight Fri & Sat", detail: "11am every day, late at weekends." },
-    { label: `${siteConfig.rating}★ from ${siteConfig.reviewCount}+ reviews`, detail: "Google, Uber Eats and Deliveroo." },
-    { label: "Free delivery in G31", detail: `£3.99 outside (up to ${siteConfig.deliveryRadiusMiles} miles).` },
+    { label: `${siteConfig.rating}★ from ${siteConfig.reviewCount}+ reviews`, detail: "Google and Uber Eats." },
+    { label: "Glasgow East End delivery", detail: `£3.99 flat fee, up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}.` },
   ],
   pizzas: [
     {
@@ -98,7 +98,7 @@ export const homeContent: HomeContent = {
     {
       id: "delivery",
       title: "Delivery",
-      body: `Hot, properly boxed and on your doorstep. Free in G31 (Dennistoun), £3.99 anywhere else inside ${siteConfig.deliveryRadiusMiles} miles. Also on Deliveroo.`,
+      body: `Hot, properly boxed and on your doorstep. Free in G31 (Dennistoun), £3.99 anywhere else inside ${siteConfig.deliveryRadiusMiles} miles.`,
       ctaLabel: "Start a delivery order",
       ctaHref: "/menu",
     },
@@ -128,7 +128,7 @@ export const homeContent: HomeContent = {
   },
   finalCta: {
     eyebrow: "Hungry yet?",
-    heading: "Order now or call 0141 378 0909.",
+    heading: `Order now or call ${siteConfig.phone}.`,
     body: "Order online for delivery and collection, or call us direct. Open 11am — late, seven days a week.",
     primary: { label: "Order online", href: "/menu" },
     secondary: { label: `Call ${siteConfig.phone}`, href: `tel:${siteConfig.phoneTel}` },
