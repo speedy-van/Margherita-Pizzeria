@@ -2,135 +2,117 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var container: AppContainer
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: AuthViewModel
     @State private var showPassword = false
     @State private var showForgot = false
     @FocusState private var focused: Field?
 
-    enum Field { case email, password, baseURL }
+    enum Field { case email, password }
 
     init(container: AppContainer) {
         _vm = StateObject(wrappedValue: container.makeAuthViewModel())
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppTheme.Space.lg) {
-                    VStack(spacing: AppTheme.Space.sm) {
-                        Image(systemName: "fork.knife.circle.fill")
-                            .font(.system(size: 64))
-                            .foregroundStyle(AppTheme.primary)
-                        Text("Margherita Admin").font(.title.bold())
-                        Text("Sign in to manage orders, bookings and the menu.")
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.onSurfaceMuted)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, AppTheme.Space.xxl)
-
-                    VStack(spacing: AppTheme.Space.md) {
-                        labeled("Email") {
-                            TextField("you@example.com", text: $vm.email)
-                                .textContentType(.emailAddress)
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                                .focused($focused, equals: .email)
-                                .submitLabel(.next)
-                                .onSubmit { focused = .password }
-                                .textFieldStyle(.roundedBorder)
-                        }
-                        labeled("Password") {
-                            HStack {
-                                Group {
-                                    if showPassword {
-                                        TextField("••••••••", text: $vm.password)
-                                    } else {
-                                        SecureField("••••••••", text: $vm.password)
-                                    }
-                                }
-                                .textContentType(.password)
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                                .focused($focused, equals: .password)
-                                .submitLabel(.go)
-                                .onSubmit { Task { await vm.submit() } }
-                                Button {
-                                    showPassword.toggle()
-                                } label: {
-                                    Image(systemName: showPassword ? "eye.slash" : "eye")
-                                        .foregroundStyle(AppTheme.onSurfaceMuted)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel(showPassword ? "Hide password" : "Show password")
-                            }
-                            .padding(8)
-                            .background(AppTheme.surface)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppTheme.outline))
-                        }
-
-                        DisclosureGroup("Server URL") {
-                            TextField("https://www.margheritapizza.uk/",
-                                      text: $vm.baseURL)
-                                .keyboardType(.URL)
-                                .textContentType(.URL)
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                                .focused($focused, equals: .baseURL)
-                                .textFieldStyle(.roundedBorder)
-                                .padding(.top, 6)
-                            Text("Override for local development. Persisted on this device.")
-                                .font(.caption).foregroundStyle(AppTheme.onSurfaceMuted)
-                                .padding(.top, 4)
-                        }
+        ScrollView {
+            VStack(spacing: AppTheme.Space.lg) {
+                VStack(spacing: AppTheme.Space.sm) {
+                    Image("BrandLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 96, height: 96)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous))
+                        .accessibilityLabel("Margherita Pizza logo")
+                    Text(language.text("app.name")).font(.title.bold())
+                    Text(language.text("Manage live orders, bookings and the menu."))
                         .font(.subheadline)
-                    }
+                        .foregroundStyle(AppTheme.onSurfaceMuted)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, AppTheme.Space.xxl)
 
-                    if case .failed(let msg) = vm.phase {
-                        Label(msg, systemImage: "exclamationmark.triangle.fill")
-                            .font(.subheadline)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .foregroundStyle(AppTheme.danger)
-                            .background(AppTheme.danger.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                VStack(spacing: AppTheme.Space.md) {
+                    labeled(language.text("Email")) {
+                        TextField("you@example.com", text: $vm.email)
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .focused($focused, equals: .email)
+                            .submitLabel(.next)
+                            .onSubmit { focused = .password }
+                            .textFieldStyle(.roundedBorder)
                     }
-
-                    Button {
-                        focused = nil
-                        Task { await vm.submit() }
-                    } label: {
+                    labeled(language.text("Password")) {
                         HStack {
-                            if case .submitting = vm.phase {
-                                ProgressView().tint(.white)
+                            Group {
+                                if showPassword {
+                                    TextField("••••••••", text: $vm.password)
+                                } else {
+                                    SecureField("••••••••", text: $vm.password)
+                                }
                             }
-                            Text(vm.phase == .submitting ? "Signing in…" : "Sign in")
-                                .font(.headline)
+                            .textContentType(.password)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .focused($focused, equals: .password)
+                            .submitLabel(.go)
+                            .onSubmit { Task { await vm.submit() } }
+                            Button {
+                                showPassword.toggle()
+                            } label: {
+                                Image(systemName: showPassword ? "eye.slash" : "eye")
+                                    .foregroundStyle(AppTheme.onSurfaceMuted)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(showPassword ? language.text("Hide password") : language.text("Show password"))
                         }
-                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .padding(8)
+                        .background(AppTheme.surface)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppTheme.outline))
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.primary)
-                    .disabled(!vm.canSubmit)
 
-                    Button("Forgot password?") { showForgot = true }
+                }
+
+                if case .failed(let msg) = vm.phase {
+                    Label(language.text(msg), systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline)
-                        .foregroundStyle(AppTheme.primary)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundStyle(AppTheme.danger)
+                        .background(AppTheme.danger.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
 
-                    Spacer(minLength: AppTheme.Space.xl)
+                Button {
+                    focused = nil
+                    Task { await vm.submit() }
+                } label: {
+                    HStack {
+                        if case .submitting = vm.phase {
+                            ProgressView().tint(.white)
+                        }
+                        Text(vm.phase == .submitting ? language.text("Signing in…") : language.text("Sign in"))
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 48)
                 }
-                .padding(AppTheme.Space.lg)
+                .buttonStyle(.borderedProminent)
+                .tint(AppTheme.primary)
+                .disabled(!vm.canSubmit)
+
+                Button(language.text("Forgot password?")) { showForgot = true }
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.primary)
+
+                Spacer(minLength: AppTheme.Space.xl)
             }
-            .background(AppTheme.background.ignoresSafeArea())
-            .navigationDestination(isPresented: $showForgot) {
-                ForgotPasswordView(container: container)
-            }
-            .onAppear {
-                vm.onApplyBaseURL = { [weak container] url in
-                    container?.rebuildApiClient(with: url)
-                }
-            }
+            .padding(AppTheme.Space.lg)
+        }
+        .background(AppTheme.background.ignoresSafeArea())
+        .navigationDestination(isPresented: $showForgot) {
+            ForgotPasswordView(container: container)
         }
     }
 

@@ -7,18 +7,10 @@ final class AuthViewModel: ObservableObject {
     @Published var password: String = ""
     @Published var phase: Phase = .idle
 
-    /// Captured at login time so users can hop between dev/prod servers
-    /// without rebuilding. Persisted via SessionManager.overrideBaseURL.
-    @Published var baseURL: String
-
     private let repo: AuthRepository
-    private let session: SessionManager
-    var onApplyBaseURL: (URL) -> Void = { _ in }
-
     init(repo: AuthRepository, session: SessionManager) {
         self.repo = repo
-        self.session = session
-        self.baseURL = session.overrideBaseURL?.absoluteString ?? AppConfig.baseURL.absoluteString
+        _ = session
     }
 
     var canSubmit: Bool {
@@ -28,12 +20,6 @@ final class AuthViewModel: ObservableObject {
 
     func submit() async {
         guard canSubmit else { return }
-        // Apply base URL override (if changed) before the call.
-        if let url = URL(string: baseURL.trimmingCharacters(in: .whitespaces)),
-           url.scheme != nil {
-            session.overrideBaseURL = url
-            onApplyBaseURL(url)
-        }
         phase = .submitting
         let result = await repo.signIn(email: email.trimmingCharacters(in: .whitespaces),
                                        password: password)

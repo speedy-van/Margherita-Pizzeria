@@ -5,6 +5,7 @@ import UIKit
 struct MargheritaAdminApp: App {
     @StateObject private var container = AppContainer()
     @StateObject private var router = RootRouter()
+    @StateObject private var language = LanguageStore()
 
     init() {
         // Tab bar / nav bar appearance — keep them solid so the
@@ -31,6 +32,9 @@ struct MargheritaAdminApp: App {
                 RootView()
                     .environmentObject(container)
                     .environmentObject(router)
+                    .environmentObject(language)
+                    .environment(\.locale, language.locale)
+                    .environment(\.layoutDirection, language.layoutDirection)
             }
         }
     }

@@ -3,6 +3,7 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var container: AppContainer
     @EnvironmentObject var router: RootRouter
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: DashboardViewModel
 
     init(container: AppContainer) {
@@ -19,9 +20,9 @@ struct DashboardView: View {
                         .frame(height: 320)
                 } else if let s = vm.stats {
                     statGrid(s)
-                    SectionCard(title: "Recent orders") {
+                    SectionCard(title: language.text("Recent orders")) {
                         if s.latestOrders.isEmpty {
-                            Text("No orders yet.")
+                            Text(language.text("No orders yet."))
                                 .foregroundStyle(AppTheme.onSurfaceMuted)
                                 .font(.subheadline)
                         } else {
@@ -35,9 +36,9 @@ struct DashboardView: View {
                             }
                         }
                     }
-                    SectionCard(title: "Recent bookings") {
+                    SectionCard(title: language.text("Recent bookings")) {
                         if s.latestBookings.isEmpty {
-                            Text("No bookings yet.")
+                            Text(language.text("No bookings yet."))
                                 .foregroundStyle(AppTheme.onSurfaceMuted)
                                 .font(.subheadline)
                         } else {
@@ -56,7 +57,7 @@ struct DashboardView: View {
             .padding(AppTheme.Space.lg)
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle("Dashboard")
+        .navigationTitle(language.text("Dashboard"))
         .refreshable { await vm.load() }
         .task { await vm.load() }
     }
@@ -65,14 +66,14 @@ struct DashboardView: View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: AppTheme.Space.md),
                             GridItem(.flexible(), spacing: AppTheme.Space.md)],
                   spacing: AppTheme.Space.md) {
-            statTile("Total orders", "\(s.totalOrders)", icon: "bag")
-            statTile("Order value", Format.pence(s.totalOrderValuePence), icon: "sterlingsign.circle")
-            statTile("Pending orders", "\(s.pendingOrders)", icon: "clock", emph: s.pendingOrders > 0)
-            statTile("Total bookings", "\(s.totalBookings)", icon: "calendar")
-            statTile("Pending bookings", "\(s.pendingBookings)", icon: "calendar.badge.exclamationmark",
+            statTile(language.text("Total orders"), "\(s.totalOrders)", icon: "bag")
+            statTile(language.text("Order value"), Format.pence(s.totalOrderValuePence), icon: "sterlingsign.circle")
+            statTile(language.text("Pending orders"), "\(s.pendingOrders)", icon: "clock", emph: s.pendingOrders > 0)
+            statTile(language.text("Total bookings"), "\(s.totalBookings)", icon: "calendar")
+            statTile(language.text("Pending bookings"), "\(s.pendingBookings)", icon: "calendar.badge.exclamationmark",
                      emph: s.pendingBookings > 0)
             if let rev = s.revenueTodayPence {
-                statTile("Today", Format.pence(rev), icon: "chart.line.uptrend.xyaxis")
+                statTile(language.text("Today"), Format.pence(rev), icon: "chart.line.uptrend.xyaxis")
             }
         }
     }
@@ -96,7 +97,7 @@ struct DashboardView: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(o.reference ?? o.id).font(.subheadline.weight(.semibold))
-                Text("\(o.type.capitalized) · \(o.customerName ?? "Guest")")
+                Text("\(language.orderType(o.type)) · \(o.customerName ?? language.text("Guest"))")
                     .font(.caption).foregroundStyle(AppTheme.onSurfaceMuted)
                 Text(Format.shortDateTime(o.createdAt))
                     .font(.caption2).foregroundStyle(AppTheme.onSurfaceMuted)
@@ -104,7 +105,7 @@ struct DashboardView: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
                 Text(Format.pence(o.totalPence)).font(.subheadline.weight(.semibold))
-                StatusBadge(label: prettyStatus(o.status), kind: orderStatusKind(o.status))
+                StatusBadge(label: language.status(o.status), kind: orderStatusKind(o.status))
             }
         }
         .padding(.vertical, 6)
@@ -114,12 +115,12 @@ struct DashboardView: View {
     @ViewBuilder private func bookingRow(_ b: AdminBookingListItem) -> some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(b.customerName ?? "Guest").font(.subheadline.weight(.semibold))
-                Text("\(b.covers) covers · \(b.date) \(b.timeSlot)")
+                Text(b.customerName ?? language.text("Guest")).font(.subheadline.weight(.semibold))
+                Text("\(b.covers) \(language.text("covers")) · \(b.date) \(b.timeSlot)")
                     .font(.caption).foregroundStyle(AppTheme.onSurfaceMuted)
             }
             Spacer()
-            StatusBadge(label: prettyStatus(b.status), kind: bookingStatusKind(b.status))
+            StatusBadge(label: language.status(b.status), kind: bookingStatusKind(b.status))
         }
         .padding(.vertical, 6)
         .contentShape(Rectangle())

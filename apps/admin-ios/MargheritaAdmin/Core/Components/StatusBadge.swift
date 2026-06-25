@@ -41,11 +41,12 @@ struct StatusBadge: View {
 /// Mirrors Android `orderStatusKind(status)`.
 func orderStatusKind(_ status: String) -> StatusKind {
     switch status.lowercased() {
-    case "received", "pending_payment": return .warning
-    case "preparing":                   return .info
+    case "pending_payment":             return .warning
+    case "received":                    return .warning
+    case "making":                      return .info
     case "ready", "out_for_delivery":   return .info
-    case "completed", "delivered":      return .success
-    case "cancelled", "refunded":       return .danger
+    case "delivered":                   return .success
+    case "cancelled", "rejected":       return .danger
     default:                            return .neutral
     }
 }

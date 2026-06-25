@@ -1,52 +1,57 @@
 import Foundation
 
 struct AdminDaySchedule: Codable, Equatable {
-    var isOpen: Bool
-    var opensAt: String?
-    var closesAt: String?
+    var open: String = "11:00"
+    var close: String = "23:00"
+    var closed: Bool? = false
 }
 
 typealias AdminOpeningHours = [String: AdminDaySchedule]
 
 struct AdminSettings: Codable, Equatable {
-    var deliveryFeeBasePence: Int
-    var freeDeliveryThresholdPence: Int
+    var minDeliveryOrderPence: Int
+    var deliveryFeePence: Int
+    var prepTimeMinutes: Int
+    var deliveryTimeMinutes: Int
+    var depositEnabled: Bool
+    var depositAmountPence: Int
     var openingHours: AdminOpeningHours
-    var description: String?
 }
 
 struct AdminSettingsInput: Encodable {
-    let deliveryFeeBasePence: Int
-    let freeDeliveryThresholdPence: Int
+    let minDeliveryOrderPence: Int
+    let deliveryFeePence: Int
+    let prepTimeMinutes: Int
+    let deliveryTimeMinutes: Int
+    let depositEnabled: Bool
+    let depositAmountPence: Int
     let openingHours: AdminOpeningHours
-    let description: String?
 }
 
 struct AdminTimeSlot: Codable, Identifiable, Equatable {
     let id: String
-    var startTime: String
-    var endTime: String
-    var seats: Int
+    var type: String
+    var time: String
     var active: Bool
     let createdAt: String?
 }
 
 struct AdminTimeSlotInput: Encodable {
-    let startTime: String
-    let endTime: String
-    let seats: Int
+    let type: String
+    let time: String
+    let active: Bool
 }
 
 struct AdminTable: Codable, Identifiable, Equatable {
     let id: String
     var number: Int
-    var seats: Int
+    var maxCovers: Int
     var active: Bool
     let createdAt: String?
 }
 
 struct AdminTableUpdate: Encodable {
     let id: String
-    let seats: Int
+    let maxCovers: Int
     let active: Bool
 }

@@ -25,8 +25,11 @@ final class BadgesController: ObservableObject {
     @Published private(set) var pendingBookings: Int = 0
 
     private weak var dialog: DialogController?
+    private weak var language: LanguageStore?
 
     private var soundPlayer: AVAudioPlayer?
+    // Cancelled in stopSound(); guards against a dialog closing without triggering onClose.
+    private var soundTimeoutTask: Task<Void, Never>?
 
     init(repo: DashboardRepository, session: SessionManager, router: RootRouter) {
         self.repo = repo
@@ -34,8 +37,9 @@ final class BadgesController: ObservableObject {
         self.router = router
     }
 
-    func attach(dialog: DialogController) {
+    func attach(dialog: DialogController, language: LanguageStore) {
         self.dialog = dialog
+        self.language = language
     }
 
     func start() {
@@ -112,15 +116,16 @@ final class BadgesController: ObservableObject {
 
     private func fireOrderAlert(_ o: AdminOrderListItem) {
         startSound()
-        notifyOS(title: "New order \(o.reference ?? o.id)",
-                 body: "\(o.type.capitalized) · \(Format.pence(o.totalPence))")
+        let ref = o.reference ?? o.id
+        let body = "\(orderType(o.type)) · \(Format.pence(o.totalPence))"
+        notifyOS(title: "\(text("New order")) \(ref)", body: body)
         dialog?.show(
-            title: "New order",
-            message: "\(o.reference ?? o.id) · \(o.type.capitalized) · \(Format.pence(o.totalPence))",
+            title: text("New order"),
+            message: "\(ref) · \(body)",
             tone: .warning,
             actions: [
-                .init(label: "Dismiss", style: .secondary),
-                .init(label: "View", style: .primary) { [weak self] in
+                .init(label: text("Dismiss"), style: .secondary),
+                .init(label: text("View"), style: .primary) { [weak self] in
                     self?.router.navigateToOrder(o.id)
                 }
             ],
@@ -131,21 +136,30 @@ final class BadgesController: ObservableObject {
 
     private func fireBookingAlert(_ b: AdminBookingListItem) {
         startSound()
-        notifyOS(title: "New booking \(b.reference ?? b.id)",
-                 body: "\(b.covers) covers · \(b.date) \(b.timeSlot)")
+        let ref = b.reference ?? b.id
+        let body = "\(b.covers) \(text("covers")) · \(b.date) \(b.timeSlot)"
+        notifyOS(title: "\(text("New booking")) \(ref)", body: body)
         dialog?.show(
-            title: "New booking",
-            message: "\(b.covers) covers · \(b.date) \(b.timeSlot)",
+            title: text("New booking"),
+            message: body,
             tone: .warning,
             actions: [
-                .init(label: "Dismiss", style: .secondary),
-                .init(label: "View", style: .primary) { [weak self] in
+                .init(label: text("Dismiss"), style: .secondary),
+                .init(label: text("View"), style: .primary) { [weak self] in
                     self?.router.navigateToBooking(b.id)
                 }
             ],
             dismissOnBackdrop: false,
             onClose: { [weak self] in self?.stopSound() }
         )
+    }
+
+    private func text(_ key: String) -> String {
+        language?.text(key) ?? key
+    }
+
+    private func orderType(_ raw: String) -> String {
+        language?.orderType(raw) ?? raw.capitalized
     }
 
     // MARK: - Sound
@@ -155,6 +169,7 @@ final class BadgesController: ObservableObject {
         let url = Bundle.main.url(forResource: "new_order_alert", withExtension: "wav")
             ?? Bundle.main.url(forResource: "new_order_alert", withExtension: "caf")
             ?? Bundle.main.url(forResource: "new_order_alert", withExtension: "m4a")
+            ?? Bundle.main.url(forResource: "new_order_alert", withExtension: "mp3")
         guard let url else { return }
         do {
             let p = try AVAudioPlayer(contentsOf: url)
@@ -162,11 +177,15 @@ final class BadgesController: ObservableObject {
             p.prepareToPlay()
             soundPlayer = p
         } catch {
-            print("[Alerts] sound preload failed: \(error)")
+            // Keep silent in production; fallback haptic/system sound still works.
         }
     }
 
     private func startSound() {
+        // Cancel any previous timeout so each new alert gets a fresh window.
+        soundTimeoutTask?.cancel()
+        soundTimeoutTask = nil
+
         if soundPlayer == nil { preloadSound() }
         soundPlayer?.currentTime = 0
         soundPlayer?.play()
@@ -174,9 +193,18 @@ final class BadgesController: ObservableObject {
         if soundPlayer == nil {
             AudioServicesPlaySystemSound(1304) // SMSReceived
         }
+
+        // Safety valve: stop after 3 minutes even if the dialog's onClose is never called.
+        soundTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 3 * 60 * 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.stopSound()
+        }
     }
 
     private func stopSound() {
+        soundTimeoutTask?.cancel()
+        soundTimeoutTask = nil
         soundPlayer?.stop()
         soundPlayer?.currentTime = 0
     }
@@ -190,8 +218,8 @@ final class BadgesController: ObservableObject {
             let content = UNMutableNotificationContent()
             content.title = title
             content.body = body
-            content.sound = .defaultCritical
-            content.interruptionLevel = .timeSensitive
+            content.sound = .default
+            content.interruptionLevel = .active
             let req = UNNotificationRequest(identifier: UUID().uuidString,
                                             content: content, trigger: nil)
             center.add(req)
@@ -200,7 +228,7 @@ final class BadgesController: ObservableObject {
 
     static func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(
-            options: [.alert, .badge, .sound, .timeSensitive]
+            options: [.alert, .badge, .sound]
         ) { _, _ in }
     }
 }

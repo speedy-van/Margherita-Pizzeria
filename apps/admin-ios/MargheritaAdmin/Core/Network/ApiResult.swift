@@ -33,7 +33,14 @@ enum ApiFailure: Error {
         case .unauthorized:                return "You have been signed out."
         case .forbidden:                   return "You don't have access to that."
         case .notFound:                    return "Not found."
-        case .validation(let m, _):        return m.isEmpty ? "Please check the form and try again." : m
+        case .validation(let m, let fields):
+            let base = m.isEmpty ? "Please check the form and try again." : m
+            guard !fields.isEmpty else { return base }
+            let details = fields
+                .sorted { $0.key < $1.key }
+                .map { "\($0.key): \($0.value)" }
+                .joined(separator: "\n")
+            return "\(base)\n\(details)"
         case .server(_, let m):            return m.isEmpty ? "Server error." : m
         case .decoding(let m):             return "Couldn't read the server response. \(m)"
         case .unknown(let m):              return m.isEmpty ? "Something went wrong." : m

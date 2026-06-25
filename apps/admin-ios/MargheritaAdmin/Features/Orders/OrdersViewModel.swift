@@ -60,12 +60,14 @@ final class OrderDetailViewModel: ObservableObject {
     }
 
     func updateStatus(_ status: String) async {
+        guard updatingStatus == nil else { return }
+        if detail?.status.lowercased() == status.lowercased() { return }
         updatingStatus = status
         lastError = nil
+        defer { updatingStatus = nil }
         switch await repo.updateStatus(id: id, status: status) {
         case .success(let d):  detail = d
         case .failure(let e):  lastError = e.displayMessage
         }
-        updatingStatus = nil
     }
 }

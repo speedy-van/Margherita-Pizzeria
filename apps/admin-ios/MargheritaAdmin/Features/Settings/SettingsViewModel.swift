@@ -23,18 +23,23 @@ final class SettingsViewModel: ObservableObject {
 
         var anyFail: String?
         if case .success(let v) = settingsR { settings = v } else if case .failure(let e) = settingsR { anyFail = e.displayMessage }
-        if case .success(let v) = timeSlotsR { timeSlots = v.sorted { $0.startTime < $1.startTime } }
+        if case .success(let v) = timeSlotsR { timeSlots = v.sorted { $0.time < $1.time } }
         if case .success(let v) = tablesR { tables = v.sorted { $0.number < $1.number } }
         phase = anyFail.map { .failed($0) } ?? .loaded
     }
 
     func saveSettings(_ s: AdminSettings) async {
+        guard !working else { return }
         working = true; lastError = nil
+        defer { working = false }
         let input = AdminSettingsInput(
-            deliveryFeeBasePence: s.deliveryFeeBasePence,
-            freeDeliveryThresholdPence: s.freeDeliveryThresholdPence,
-            openingHours: s.openingHours,
-            description: s.description
+            minDeliveryOrderPence: s.minDeliveryOrderPence,
+            deliveryFeePence: s.deliveryFeePence,
+            prepTimeMinutes: s.prepTimeMinutes,
+            deliveryTimeMinutes: s.deliveryTimeMinutes,
+            depositEnabled: s.depositEnabled,
+            depositAmountPence: s.depositAmountPence,
+            openingHours: s.openingHours
         )
         switch await repo.update(input) {
         case .success(let updated):
@@ -43,16 +48,16 @@ final class SettingsViewModel: ObservableObject {
         case .failure(let e):
             lastError = e.displayMessage
         }
-        working = false
     }
 
-    func addTimeSlot(start: String, end: String, seats: Int) async -> Bool {
+    func addTimeSlot(type: String, time: String) async -> Bool {
+        guard !working else { return false }
         working = true; lastError = nil
-        let r = await repo.createTimeSlot(AdminTimeSlotInput(startTime: start, endTime: end, seats: seats))
-        working = false
+        defer { working = false }
+        let r = await repo.createTimeSlot(AdminTimeSlotInput(type: type, time: time, active: true))
         switch r {
         case .success(let s):
-            timeSlots.append(s); timeSlots.sort { $0.startTime < $1.startTime }
+            timeSlots.append(s); timeSlots.sort { $0.time < $1.time }
             return true
         case .failure(let e):
             lastError = e.displayMessage; return false
@@ -60,25 +65,27 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func updateTimeSlot(_ slot: AdminTimeSlot) async {
+        guard !working else { return }
         working = true; lastError = nil
+        defer { working = false }
         switch await repo.updateTimeSlot(slot) {
         case .success(let s):
             if let i = timeSlots.firstIndex(where: { $0.id == s.id }) { timeSlots[i] = s }
         case .failure(let e):
             lastError = e.displayMessage
         }
-        working = false
     }
 
     func updateTable(_ table: AdminTable) async {
+        guard !working else { return }
         working = true; lastError = nil
-        let upd = AdminTableUpdate(id: table.id, seats: table.seats, active: table.active)
+        defer { working = false }
+        let upd = AdminTableUpdate(id: table.id, maxCovers: table.maxCovers, active: table.active)
         switch await repo.updateTable(upd) {
         case .success(let t):
             if let i = tables.firstIndex(where: { $0.id == t.id }) { tables[i] = t }
         case .failure(let e):
             lastError = e.displayMessage
         }
-        working = false
     }
 }

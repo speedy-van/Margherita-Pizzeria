@@ -33,8 +33,10 @@ final class MenuViewModel: ObservableObject {
     }
 
     func toggleAvailability(_ item: AdminMenuItem) async {
+        guard !working else { return }
         working = true
         lastError = nil
+        defer { working = false }
         let input = MenuItemInput(
             name: item.name, description: item.description,
             pricePence: item.pricePence, categoryId: item.categoryId,
@@ -49,19 +51,19 @@ final class MenuViewModel: ObservableObject {
         case .failure(let e):
             lastError = e.displayMessage
         }
-        working = false
     }
 
     func save(input: MenuItemInput, editingId: String?) async -> Bool {
+        guard !working else { return false }
         working = true
         lastError = nil
+        defer { working = false }
         let result: ApiResult<AdminMenuItem>
         if let id = editingId {
             result = await repo.updateItem(id: id, input)
         } else {
             result = await repo.createItem(input)
         }
-        working = false
         switch result {
         case .success(let updated):
             if let i = items.firstIndex(where: { $0.id == updated.id }) {
@@ -78,10 +80,11 @@ final class MenuViewModel: ObservableObject {
     }
 
     func delete(_ item: AdminMenuItem) async -> Bool {
+        guard !working else { return false }
         working = true
         lastError = nil
+        defer { working = false }
         let r = await repo.deleteItem(id: item.id)
-        working = false
         switch r {
         case .success:
             items.removeAll { $0.id == item.id }

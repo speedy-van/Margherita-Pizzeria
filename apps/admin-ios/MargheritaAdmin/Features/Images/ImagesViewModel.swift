@@ -23,9 +23,10 @@ final class ImagesViewModel: ObservableObject {
     }
 
     func updateURL(id: String, url: String) async -> Bool {
+        guard !working else { return false }
         working = true; lastError = nil
+        defer { working = false }
         let r = await repo.update(id: id, url: url)
-        working = false
         switch r {
         case .success(let updated):
             if let i = items.firstIndex(where: { $0.id == updated.id }) { items[i] = updated }

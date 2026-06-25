@@ -4,7 +4,7 @@ import SwiftUI
 enum AppTab: Hashable, CaseIterable {
     case dashboard, orders, bookings, menu, more
 
-    var title: String {
+    var titleKey: String {
         switch self {
         case .dashboard: return "Dashboard"
         case .orders:    return "Orders"
@@ -33,6 +33,8 @@ enum Route: Hashable {
     case images
     case discounts
     case forgotPassword
+    case invoicesList
+    case invoiceDetail(String)
 }
 
 /// Holds the current tab + per-tab navigation paths. Stored as an

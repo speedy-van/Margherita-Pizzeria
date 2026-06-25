@@ -4,6 +4,7 @@ struct RootView: View {
     @EnvironmentObject var container: AppContainer
     @EnvironmentObject var router: RootRouter
     @EnvironmentObject var dialog: DialogController
+    @EnvironmentObject var language: LanguageStore
 
     var body: some View {
         Group {
@@ -22,9 +23,10 @@ struct RootView: View {
             switch event {
             case .signedOutRemotely:
                 dialog.alert(
-                    title: "Signed out",
-                    message: "Your session expired. Please sign in again.",
-                    tone: .warning
+                    title: language.text("Signed out"),
+                    message: language.text("Your session expired. Please sign in again."),
+                    tone: .warning,
+                    okLabel: language.text("OK")
                 )
             }
         }
@@ -32,15 +34,19 @@ struct RootView: View {
 }
 
 private struct SplashView: View {
+    @EnvironmentObject var language: LanguageStore
+
     var body: some View {
         ZStack {
             AppTheme.background.ignoresSafeArea()
             VStack(spacing: AppTheme.Space.lg) {
-                Image(systemName: "fork.knife.circle.fill")
-                    .resizable().scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .foregroundStyle(AppTheme.primary)
-                Text("Margherita Admin")
+                Image("BrandLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 96, height: 96)
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous))
+                    .accessibilityLabel("Margherita Pizza logo")
+                Text(language.text("app.name"))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(AppTheme.onSurface)
                 ProgressView().tint(AppTheme.primary)

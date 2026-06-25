@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OrdersListView: View {
     @EnvironmentObject var container: AppContainer
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: OrdersListViewModel
 
     init(container: AppContainer) {
@@ -14,7 +15,7 @@ struct OrdersListView: View {
             content
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle("Orders")
+        .navigationTitle(language.text("Orders"))
         .navigationDestination(for: Route.self) { route in
             if case .orderDetail(let id) = route {
                 OrderDetailView(container: container, id: id)
@@ -28,7 +29,7 @@ struct OrdersListView: View {
         VStack(spacing: AppTheme.Space.sm) {
             HStack {
                 Image(systemName: "magnifyingglass").foregroundStyle(AppTheme.onSurfaceMuted)
-                TextField("Search ref, name, phone, email", text: $vm.search)
+                TextField(language.text("Search ref, name, phone, email"), text: $vm.search)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                 if !vm.search.isEmpty {
@@ -44,10 +45,10 @@ struct OrdersListView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: AppTheme.Space.sm) {
-                    chip(label: "All status",
+                    chip(label: language.text("All status"),
                          selected: vm.statusFilter == nil) { vm.statusFilter = nil }
                     ForEach(OrderStatuses.all, id: \.self) { s in
-                        chip(label: prettyStatus(s),
+                        chip(label: language.status(s),
                              selected: vm.statusFilter == s) { vm.statusFilter = s }
                     }
                 }
@@ -55,11 +56,11 @@ struct OrdersListView: View {
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: AppTheme.Space.sm) {
-                    chip(label: "All types",
+                    chip(label: language.text("All types"),
                          selected: vm.typeFilter == nil) { vm.typeFilter = nil }
-                    chip(label: "Delivery",
+                    chip(label: language.text("Delivery"),
                          selected: vm.typeFilter == "delivery") { vm.typeFilter = "delivery" }
-                    chip(label: "Collection",
+                    chip(label: language.text("Collection"),
                          selected: vm.typeFilter == "collection") { vm.typeFilter = "collection" }
                 }
                 .padding(.vertical, 2)
@@ -75,11 +76,18 @@ struct OrdersListView: View {
         } else if case .failed(let m) = vm.phase, vm.items.isEmpty {
             ErrorState(message: m) { Task { await vm.load() } }
         } else if vm.filtered.isEmpty {
-            EmptyState(title: "No orders",
-                       message: "Try clearing the filters.",
+            EmptyState(title: language.text("No orders"),
+                       message: language.text("Try clearing the filters."),
                        systemImage: "bag")
         } else {
             List {
+                Section {
+                    Text("\(vm.filtered.count) \(vm.filtered.count == 1 ? language.text("order") : language.text("orders"))")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.onSurfaceMuted)
+                        .textCase(nil)
+                        .listRowBackground(AppTheme.background)
+                }
                 ForEach(vm.filtered) { o in
                     NavigationLink(value: Route.orderDetail(o.id)) { row(o) }
                         .listRowBackground(AppTheme.surface)
@@ -92,23 +100,50 @@ struct OrdersListView: View {
     }
 
     @ViewBuilder private func row(_ o: AdminOrderListItem) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(o.reference ?? o.id).font(.subheadline.weight(.semibold))
-                Spacer()
-                Text(Format.pence(o.totalPence)).font(.subheadline.weight(.semibold))
-            }
-            HStack {
-                StatusBadge(label: prettyStatus(o.status), kind: orderStatusKind(o.status))
-                StatusBadge(label: o.type.capitalized, kind: .neutral)
-                Spacer()
+        HStack(alignment: .top, spacing: AppTheme.Space.md) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(orderStatusKind(o.status).foreground)
+                .frame(width: 4)
+                .padding(.vertical, 4)
+
+            VStack(alignment: .leading, spacing: AppTheme.Space.sm) {
+                HStack(alignment: .firstTextBaseline, spacing: AppTheme.Space.sm) {
+                    Text(o.reference ?? o.id)
+                        .font(.headline.weight(.semibold))
+                        .lineLimit(1)
+                    Spacer(minLength: AppTheme.Space.sm)
+                    Text(Format.pence(o.totalPence))
+                        .font(.headline.weight(.bold))
+                        .monospacedDigit()
+                }
+                HStack(spacing: AppTheme.Space.sm) {
+                    StatusBadge(label: language.status(o.status), kind: orderStatusKind(o.status))
+                    StatusBadge(label: language.orderType(o.type), kind: .neutral)
+                    if let count = o.itemCount {
+                        Text("\(count) \(count == 1 ? language.text("item") : language.text("items"))")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.onSurfaceMuted)
+                    }
+                    Spacer(minLength: 0)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(o.customerName ?? language.text("Guest"))
+                        .font(.subheadline)
+                        .lineLimit(1)
+                    if let phone = o.customerPhone, !phone.isEmpty {
+                        Text(phone)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.onSurfaceMuted)
+                            .lineLimit(1)
+                    }
+                }
                 Text(Format.shortDateTime(o.createdAt))
-                    .font(.caption).foregroundStyle(AppTheme.onSurfaceMuted)
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.onSurfaceMuted)
             }
-            Text(o.customerName ?? "Guest")
-                .font(.caption).foregroundStyle(AppTheme.onSurfaceMuted)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder

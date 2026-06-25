@@ -4,6 +4,7 @@ struct MainTabView: View {
     @EnvironmentObject var container: AppContainer
     @EnvironmentObject var router: RootRouter
     @EnvironmentObject var dialog: DialogController
+    @EnvironmentObject var language: LanguageStore
 
     @StateObject private var badges: BadgesController
 
@@ -35,7 +36,7 @@ struct MainTabView: View {
         }
         .tint(AppTheme.primary)
         .onAppear {
-            badges.attach(dialog: dialog)
+            badges.attach(dialog: dialog, language: language)
             badges.start()
             BadgesController.requestNotificationPermission()
         }
@@ -53,7 +54,7 @@ struct MainTabView: View {
             content()
         }
         .tabItem {
-            Label(tab.title, systemImage: tab.systemImage)
+            Label(language.text(tab.titleKey), systemImage: tab.systemImage)
         }
         .badge(badge > 0 ? badge : 0)
         .tag(tab)

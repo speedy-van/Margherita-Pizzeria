@@ -3,17 +3,20 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var container: AppContainer
     @EnvironmentObject var dialog: DialogController
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: SettingsViewModel
 
+    @State private var minDeliveryText: String = ""
     @State private var deliveryFeeText: String = ""
-    @State private var freeDeliveryText: String = ""
-    @State private var description: String = ""
+    @State private var prepTimeText: String = ""
+    @State private var deliveryTimeText: String = ""
+    @State private var depositEnabled: Bool = false
+    @State private var depositAmountText: String = ""
 
-    @State private var newSlotStart: String = "12:00"
-    @State private var newSlotEnd: String = "12:30"
-    @State private var newSlotSeats: String = "20"
+    @State private var newSlotType: String = "collection"
+    @State private var newSlotTime: String = "12:00"
 
-    private let days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    private let days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
     init(container: AppContainer) {
         _vm = StateObject(wrappedValue: container.makeSettingsViewModel())
@@ -40,7 +43,7 @@ struct SettingsView: View {
                     }
                     if let m = vm.lastSavedMessage {
                         Section {
-                            Label(m, systemImage: "checkmark.circle.fill")
+                            Label(language.text(m), systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(AppTheme.success).font(.subheadline)
                         }
                     }
@@ -50,7 +53,7 @@ struct SettingsView: View {
             }
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle("Settings")
+        .navigationTitle(language.text("Settings"))
         .task {
             await vm.loadAll()
             hydrate()
@@ -60,32 +63,58 @@ struct SettingsView: View {
 
     private func hydrate() {
         guard let s = vm.settings else { return }
-        deliveryFeeText = String(format: "%.2f", Double(s.deliveryFeeBasePence) / 100.0)
-        freeDeliveryText = String(format: "%.2f", Double(s.freeDeliveryThresholdPence) / 100.0)
-        description = s.description ?? ""
+        minDeliveryText = String(format: "%.2f", Double(s.minDeliveryOrderPence) / 100.0)
+        deliveryFeeText = String(format: "%.2f", Double(s.deliveryFeePence) / 100.0)
+        prepTimeText = String(s.prepTimeMinutes)
+        deliveryTimeText = String(s.deliveryTimeMinutes)
+        depositEnabled = s.depositEnabled
+        depositAmountText = String(format: "%.2f", Double(s.depositAmountPence) / 100.0)
     }
 
     @ViewBuilder private var generalSection: some View {
-        Section("General") {
+        Section(language.text("General")) {
             HStack {
-                Text("Delivery fee (£)"); Spacer()
+                Text(language.text("Min delivery order (£)")); Spacer()
+                TextField("0.00", text: $minDeliveryText)
+                    .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                    .frame(width: 100)
+            }
+            HStack {
+                Text(language.text("Delivery fee (£)")); Spacer()
                 TextField("0.00", text: $deliveryFeeText)
                     .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                     .frame(width: 100)
             }
             HStack {
-                Text("Free delivery over (£)"); Spacer()
-                TextField("0.00", text: $freeDeliveryText)
-                    .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                Text(language.text("Prep time (min)")); Spacer()
+                TextField("25", text: $prepTimeText)
+                    .keyboardType(.numberPad).multilineTextAlignment(.trailing)
                     .frame(width: 100)
             }
-            TextField("Restaurant description", text: $description, axis: .vertical)
-                .lineLimit(2...5)
-            Button(vm.working ? "Saving…" : "Save general") {
+            HStack {
+                Text(language.text("Delivery time (min)")); Spacer()
+                TextField("45", text: $deliveryTimeText)
+                    .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                    .frame(width: 100)
+            }
+            Toggle(language.text("Deposit enabled"), isOn: $depositEnabled)
+                .tint(AppTheme.primary)
+            if depositEnabled {
+                HStack {
+                    Text(language.text("Deposit amount (£)")); Spacer()
+                    TextField("0.00", text: $depositAmountText)
+                        .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        .frame(width: 100)
+                }
+            }
+            Button(vm.working ? language.text("Saving…") : language.text("Save general")) {
                 guard var s = vm.settings else { return }
-                s.deliveryFeeBasePence = parsePence(deliveryFeeText) ?? s.deliveryFeeBasePence
-                s.freeDeliveryThresholdPence = parsePence(freeDeliveryText) ?? s.freeDeliveryThresholdPence
-                s.description = description.isEmpty ? nil : description
+                s.minDeliveryOrderPence = parsePence(minDeliveryText) ?? s.minDeliveryOrderPence
+                s.deliveryFeePence = parsePence(deliveryFeeText) ?? s.deliveryFeePence
+                s.prepTimeMinutes = Int(prepTimeText) ?? s.prepTimeMinutes
+                s.deliveryTimeMinutes = Int(deliveryTimeText) ?? s.deliveryTimeMinutes
+                s.depositEnabled = depositEnabled
+                s.depositAmountPence = parsePence(depositAmountText) ?? s.depositAmountPence
                 Task { await vm.saveSettings(s) }
             }
             .disabled(vm.working || vm.settings == nil)
@@ -93,41 +122,49 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var openingHoursSection: some View {
-        Section("Opening hours") {
+        Section(language.text("Opening hours")) {
             if vm.settings == nil {
                 Text("—").foregroundStyle(.secondary)
             } else {
                 ForEach(days, id: \.self) { day in
-                    let sched = vm.settings?.openingHours[day] ?? AdminDaySchedule(isOpen: false, opensAt: nil, closesAt: nil)
+                    let sched = vm.settings?.openingHours[day] ?? AdminDaySchedule()
                     Toggle(isOn: Binding(
-                        get: { sched.isOpen },
+                        get: { sched.closed != true },
                         set: { newVal in
-                            var s = sched; s.isOpen = newVal
+                            var s = sched; s.closed = !newVal
                             vm.settings?.openingHours[day] = s
                         }
                     )) {
                         HStack {
                             Text(dayLabel(day)).frame(width: 60, alignment: .leading)
-                            if sched.isOpen {
+                            if sched.closed != true {
                                 TextField("09:00", text: Binding(
-                                    get: { sched.opensAt ?? "" },
-                                    set: { vm.settings?.openingHours[day]?.opensAt = $0 }
+                                    get: { sched.open },
+                                    set: {
+                                        var s = vm.settings?.openingHours[day] ?? sched
+                                        s.open = $0
+                                        vm.settings?.openingHours[day] = s
+                                    }
                                 ))
                                 .frame(width: 70)
                                 Text("–")
                                 TextField("22:00", text: Binding(
-                                    get: { sched.closesAt ?? "" },
-                                    set: { vm.settings?.openingHours[day]?.closesAt = $0 }
+                                    get: { sched.close },
+                                    set: {
+                                        var s = vm.settings?.openingHours[day] ?? sched
+                                        s.close = $0
+                                        vm.settings?.openingHours[day] = s
+                                    }
                                 ))
                                 .frame(width: 70)
                             } else {
-                                Text("Closed").foregroundStyle(.secondary)
+                                Text(language.text("Closed")).foregroundStyle(.secondary)
                             }
                         }
                     }
                     .tint(AppTheme.primary)
                 }
-                Button(vm.working ? "Saving…" : "Save opening hours") {
+                Button(vm.working ? language.text("Saving…") : language.text("Save opening hours")) {
                     guard let s = vm.settings else { return }
                     Task { await vm.saveSettings(s) }
                 }
@@ -137,19 +174,14 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var timeSlotsSection: some View {
-        Section("Time slots") {
+        Section(language.text("Time slots")) {
             ForEach(vm.timeSlots) { slot in
                 HStack {
-                    Text("\(slot.startTime) – \(slot.endTime)")
+                    VStack(alignment: .leading) {
+                        Text(slot.time)
+                        Text(language.orderType(slot.type)).font(.caption).foregroundStyle(.secondary)
+                    }
                     Spacer()
-                    Stepper("\(slot.seats) seats", value: Binding(
-                        get: { slot.seats },
-                        set: { newVal in
-                            var s = slot; s.seats = newVal
-                            Task { await vm.updateTimeSlot(s) }
-                        }
-                    ), in: 1...100)
-                    .frame(width: 150)
                     Toggle("", isOn: Binding(
                         get: { slot.active },
                         set: { newVal in
@@ -160,32 +192,34 @@ struct SettingsView: View {
                 }
             }
             HStack {
-                TextField("Start", text: $newSlotStart).frame(width: 60)
-                TextField("End", text: $newSlotEnd).frame(width: 60)
-                TextField("Seats", text: $newSlotSeats).keyboardType(.numberPad).frame(width: 60)
-                Button("Add") {
-                    guard let seats = Int(newSlotSeats) else { return }
-                    Task { _ = await vm.addTimeSlot(start: newSlotStart, end: newSlotEnd, seats: seats) }
+                Picker(language.text("Type"), selection: $newSlotType) {
+                    Text(language.text("Collection")).tag("collection")
+                    Text(language.text("Booking")).tag("booking")
+                }
+                .pickerStyle(.menu)
+                TextField(language.text("Time"), text: $newSlotTime).frame(width: 70)
+                Button(language.text("Add")) {
+                    Task { _ = await vm.addTimeSlot(type: newSlotType, time: newSlotTime) }
                 }
                 .buttonStyle(.borderedProminent).tint(AppTheme.primary)
-                .disabled(vm.working || newSlotStart.isEmpty || newSlotEnd.isEmpty || Int(newSlotSeats) == nil)
+                .disabled(vm.working || newSlotTime.isEmpty)
             }
         }
     }
 
     @ViewBuilder private var tablesSection: some View {
-        Section("Tables") {
+        Section(language.text("Tables")) {
             if vm.tables.isEmpty {
-                Text("No tables configured.").foregroundStyle(.secondary)
+                Text(language.text("No tables configured.")).foregroundStyle(.secondary)
             } else {
                 ForEach(vm.tables) { table in
                     HStack {
-                        Text("Table #\(table.number)")
+                        Text("\(language.text("Table")) #\(table.number)")
                         Spacer()
-                        Stepper("\(table.seats) seats", value: Binding(
-                            get: { table.seats },
+                        Stepper("\(table.maxCovers) \(language.text("covers"))", value: Binding(
+                            get: { table.maxCovers },
                             set: { newVal in
-                                var t = table; t.seats = newVal
+                                var t = table; t.maxCovers = newVal
                                 Task { await vm.updateTable(t) }
                             }
                         ), in: 1...20).frame(width: 150)
@@ -203,30 +237,30 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var alertTestSection: some View {
-        Section("Alerts") {
+        Section(language.text("Alerts")) {
             Button {
                 dialog.show(
-                    title: "Test alert",
-                    message: "If you can hear this, audio alerts are wired correctly.",
+                    title: language.text("Alerts"),
+                    message: language.text("If you can hear this, audio alerts are wired correctly."),
                     tone: .warning,
                     actions: [
-                        .init(label: "Dismiss", style: .secondary)
+                        .init(label: language.text("Dismiss"), style: .secondary)
                     ],
                     dismissOnBackdrop: false
                 )
             } label: {
-                Label("Fire test alert", systemImage: "bell.badge.fill")
+                Label(language.text("Fire test alert"), systemImage: "bell.badge.fill")
             }
             Button {
                 BadgesController.requestNotificationPermission()
             } label: {
-                Label("Re-request notification permission", systemImage: "app.badge")
+                Label(language.text("Re-request notification permission"), systemImage: "app.badge")
             }
         }
     }
 
     private func dayLabel(_ d: String) -> String {
-        ["mon":"Mon","tue":"Tue","wed":"Wed","thu":"Thu","fri":"Fri","sat":"Sat","sun":"Sun"][d] ?? d
+        language.text("day.\(d).short")
     }
 
     private func parsePence(_ s: String) -> Int? {

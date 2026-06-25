@@ -16,7 +16,5 @@
   <string>APPL</string>
   <key>API_BASE_URL</key>
   <string>$(API_BASE_URL)</string>
-  <key>ENABLE_HTTP_LOGGING</key>
-  <string>$(INFOPLIST_KEY_ENABLE_HTTP_LOGGING)</string>
 </dict>
 </plist>

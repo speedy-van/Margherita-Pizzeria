@@ -41,14 +41,23 @@ final class DiscountsRepository {
     private let api: ApiClient
     init(api: ApiClient) { self.api = api }
 
-    func list() async -> ApiResult<[AdminDiscount]> { await api.get("/api/admin/discounts") }
+    func list() async -> ApiResult<[AdminDiscount]> {
+        if api.isDemoMode { return .success(DemoData.discountList()) }
+        return await api.get("/api/admin/discounts")
+    }
+
     func create(_ input: DiscountInput) async -> ApiResult<AdminDiscount> {
+        if api.isDemoMode { return .success(DemoData.saveDiscount(id: nil, input: input)) }
         await api.post("/api/admin/discounts", body: input)
     }
+
     func update(id: String, _ input: DiscountInput) async -> ApiResult<AdminDiscount> {
+        if api.isDemoMode { return .success(DemoData.saveDiscount(id: id, input: input)) }
         await api.put("/api/admin/discounts/\(id)", body: input)
     }
+
     func delete(id: String) async -> ApiResult<DiscountDeleteResponse> {
+        if api.isDemoMode { return .success(DemoData.deleteDiscount(id: id)) }
         await api.delete("/api/admin/discounts/\(id)")
     }
 }

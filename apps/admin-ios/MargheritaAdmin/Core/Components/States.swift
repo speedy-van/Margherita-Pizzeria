@@ -3,11 +3,12 @@ import SwiftUI
 // Mirrors `core/ui/components/States.kt`.
 
 struct LoadingState: View {
+    @EnvironmentObject var language: LanguageStore
     var label: String = "Loading…"
     var body: some View {
         VStack(spacing: AppTheme.Space.md) {
             ProgressView()
-            Text(label)
+            Text(label == "Loading…" ? language.text("Loading…") : label)
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.onSurfaceMuted)
         }
@@ -39,6 +40,7 @@ struct EmptyState: View {
 }
 
 struct ErrorState: View {
+    @EnvironmentObject var language: LanguageStore
     var message: String
     var onRetry: (() -> Void)?
     var body: some View {
@@ -46,13 +48,13 @@ struct ErrorState: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 40))
                 .foregroundStyle(AppTheme.danger)
-            Text("Something went wrong").font(.headline)
-            Text(message)
+            Text(language.text("Something went wrong")).font(.headline)
+            Text(language.text(message))
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.onSurfaceMuted)
                 .multilineTextAlignment(.center)
             if let onRetry {
-                Button("Try again", action: onRetry)
+                Button(language.text("Try again"), action: onRetry)
                     .buttonStyle(.borderedProminent)
                     .tint(AppTheme.primary)
             }

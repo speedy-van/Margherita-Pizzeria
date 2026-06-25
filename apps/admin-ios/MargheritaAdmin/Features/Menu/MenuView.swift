@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuView: View {
     @EnvironmentObject var container: AppContainer
     @EnvironmentObject var dialog: DialogController
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: MenuViewModel
     @State private var editing: MenuEditTarget?
 
@@ -17,8 +18,8 @@ struct MenuView: View {
             } else if case .failed(let m) = vm.phase, vm.items.isEmpty {
                 ErrorState(message: m) { Task { await vm.load() } }
             } else if vm.categories.isEmpty && vm.items.isEmpty {
-                EmptyState(title: "No menu items yet",
-                           message: "Tap + to add the first one.",
+                EmptyState(title: language.text("No menu items yet"),
+                           message: language.text("Tap + to add the first one."),
                            systemImage: "list.bullet")
             } else {
                 List {
@@ -26,7 +27,7 @@ struct MenuView: View {
                         Section(header: Text(cat.name).font(.headline)) {
                             let rows = vm.itemsFor(category: cat)
                             if rows.isEmpty {
-                                Text("No items in this category.")
+                                Text(language.text("No items in this category."))
                                     .font(.subheadline).foregroundStyle(AppTheme.onSurfaceMuted)
                                     .listRowBackground(AppTheme.surface)
                             }
@@ -37,7 +38,7 @@ struct MenuView: View {
                         }
                     }
                     if !vm.uncategorised.isEmpty {
-                        Section(header: Text("Uncategorised").font(.headline)) {
+                        Section(header: Text(language.text("Uncategorised")).font(.headline)) {
                             ForEach(vm.uncategorised) { item in
                                 row(item)
                                     .listRowBackground(AppTheme.surface)
@@ -51,7 +52,7 @@ struct MenuView: View {
             }
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle("Menu")
+        .navigationTitle(language.text("Menu"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -107,15 +108,16 @@ struct MenuView: View {
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) {
                 dialog.confirm(
-                    title: "Delete \(item.name)?",
-                    message: "This cannot be undone.",
-                    confirmLabel: "Delete",
+                    title: language.isArabic ? "حذف \(item.name)؟" : "Delete \(item.name)?",
+                    message: language.text("This cannot be undone."),
+                    confirmLabel: language.text("Delete"),
+                    cancelLabel: language.text("Cancel"),
                     destructive: true
                 ) { ok in
                     guard ok else { return }
                     Task { _ = await vm.delete(item) }
                 }
-            } label: { Label("Delete", systemImage: "trash") }
+            } label: { Label(language.text("Delete"), systemImage: "trash") }
         }
     }
 }

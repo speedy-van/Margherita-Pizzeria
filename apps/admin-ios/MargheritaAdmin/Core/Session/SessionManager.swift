@@ -27,7 +27,6 @@ final class SessionManager: ObservableObject {
         static let userId = "auth.user.id"
         static let userEmail = "auth.user.email"
         static let userRole = "auth.user.role"
-        static let baseUrl = "config.baseUrl"
     }
 
     @Published private(set) var state: AuthState = .unknown
@@ -76,15 +75,4 @@ final class SessionManager: ObservableObject {
         events.send(.signedOutRemotely)
     }
 
-    // MARK: - Base URL override (kept in Keychain so it survives reinstalls)
-
-    var overrideBaseURL: URL? {
-        get {
-            guard let s = KeychainStore.get(Keys.baseUrl), let u = URL(string: s) else { return nil }
-            return u
-        }
-        set {
-            KeychainStore.set(newValue?.absoluteString, for: Keys.baseUrl)
-        }
-    }
 }

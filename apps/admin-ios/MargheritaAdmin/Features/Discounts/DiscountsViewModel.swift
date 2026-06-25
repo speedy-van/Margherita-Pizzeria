@@ -23,11 +23,12 @@ final class DiscountsViewModel: ObservableObject {
     }
 
     func save(input: DiscountInput, editingId: String?) async -> Bool {
+        guard !working else { return false }
         working = true; lastError = nil
+        defer { working = false }
         let r = editingId == nil
             ? await repo.create(input)
             : await repo.update(id: editingId!, input)
-        working = false
         switch r {
         case .success(let d):
             if let i = items.firstIndex(where: { $0.id == d.id }) {
@@ -42,9 +43,10 @@ final class DiscountsViewModel: ObservableObject {
     }
 
     func delete(_ d: AdminDiscount) async -> Bool {
+        guard !working else { return false }
         working = true; lastError = nil
+        defer { working = false }
         let r = await repo.delete(id: d.id)
-        working = false
         switch r {
         case .success:
             items.removeAll { $0.id == d.id }

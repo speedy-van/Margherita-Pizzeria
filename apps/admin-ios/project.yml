@@ -31,8 +31,8 @@ targets:
       path: MargheritaAdmin/Info.plist
       properties:
         CFBundleDisplayName: Margherita Admin
-        CFBundleShortVersionString: "0.1.1"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "20"
         UILaunchScreen:
           UIColorName: SplashBackground
         UISupportedInterfaceOrientations:
@@ -45,16 +45,10 @@ targets:
         UIRequiresFullScreen: false
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
-          NSExceptionDomains:
-            localhost:
-              NSExceptionAllowsInsecureHTTPLoads: true
-              NSIncludesSubdomains: true
-        UIBackgroundModes:
-          - remote-notification
         ITSAppUsesNonExemptEncryption: false
         NSUserNotificationsUsageDescription: "We notify you of new orders and bookings."
+        UIBackgroundModes:
+          - audio
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: uk.margheritapizzeria.admin
@@ -64,13 +58,11 @@ targets:
         Debug:
           GCC_PREPROCESSOR_DEFINITIONS: "DEBUG=1 $(inherited)"
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
-          API_BASE_URL: "http://localhost:3000/"
+          API_BASE_URL: "https://www.margheritapizza.uk/"
           INFOPLIST_KEY_API_BASE_URL: $(API_BASE_URL)
-          INFOPLIST_KEY_ENABLE_HTTP_LOGGING: "YES"
         Release:
           API_BASE_URL: "https://www.margheritapizza.uk/"
           INFOPLIST_KEY_API_BASE_URL: $(API_BASE_URL)
-          INFOPLIST_KEY_ENABLE_HTTP_LOGGING: "NO"
 configs:
   Debug: debug
   Release: release

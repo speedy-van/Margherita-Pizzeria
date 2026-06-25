@@ -14,8 +14,17 @@ struct AdminImageUpdate: Encodable { let url: String }
 final class ImagesRepository {
     private let api: ApiClient
     init(api: ApiClient) { self.api = api }
-    func list() async -> ApiResult<[AdminImage]> { await api.get("/api/admin/images") }
+
+    func list() async -> ApiResult<[AdminImage]> {
+        if api.isDemoMode { return .success(DemoData.imageList()) }
+        return await api.get("/api/admin/images")
+    }
+
     func update(id: String, url: String) async -> ApiResult<AdminImage> {
+        if api.isDemoMode {
+            guard let image = DemoData.updateImage(id: id, url: url) else { return .failure(.notFound) }
+            return .success(image)
+        }
         await api.put("/api/admin/images/\(id)", body: AdminImageUpdate(url: url))
     }
 }

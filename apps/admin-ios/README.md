@@ -51,12 +51,10 @@ open MargheritaAdmin.xcodeproj
 ```
 
 Then in Xcode: select the `MargheritaAdmin` scheme and run on a simulator
-or a signed device. The Debug config defaults `API_BASE_URL` to
-`http://localhost:3000/` (override via the Login screen's "Server URL" field —
-the value is persisted in Keychain).
+or a signed device.
 
 ## Backend
-- Debug: `http://localhost:3000/`
+- Debug: `https://www.margheritapizza.uk/`
 - Release: `https://www.margheritapizza.uk/` (MUST be `www`, apex 308→www
   causes URLSession to drop the Authorization header on the redirect.)
 
@@ -65,9 +63,17 @@ matching Android's `BuildConfig.BASE_URL`.
 
 ## Auth
 - `POST /api/mobile/admin/login` returns `{ token, expiresAt, user }`.
+- `POST /api/mobile/admin/auth/forgot-password` returns a generic success
+  message and sends reset email when the account exists.
 - Token stored in Keychain (`uk.margheritapizzeria.admin.token`).
 - `ApiClient` injects `Authorization: Bearer <token>` from `SessionManager`.
 - Any `401` clears the session and emits `SessionEvent.signedOutRemotely`.
+
+## App Store review demo
+- Review email: `review@margheritapizza.uk`
+- Review password: `AppleReview2026!`
+- This sign-in opens local demo data for Apple Review only. It does not mutate
+  production orders, bookings, menu items, images, discounts, or settings.
 
 ## Alerts (parity with admin-mobile)
 - `BadgesController` polls `/api/admin/dashboard` every 8 s while signed in.
@@ -79,7 +85,36 @@ matching Android's `BuildConfig.BASE_URL`.
   `RootRouter` to the relevant detail screen across tabs.
 
 ## Push notifications (APNs) — TODO
-- Same status as Android: structurally ready (background mode set,
-  `NSUserNotificationsUsageDescription` declared) but not wired to a
-  backend service yet. Add Firebase iOS SDK + `/api/admin/devices` PUT
-  with the APNs token when shipping.
+- Not wired to a backend service yet. Add APNs/Firebase iOS wiring plus
+  `/api/admin/devices` token registration before enabling remote push.
+- Keep remote-notification background mode disabled until APNs is implemented
+  and validated end-to-end.
+
+## App Store Review checklist (first submission)
+- Build and upload a `Release` archive only (never Debug/Test URLs).
+- Verify login works against `https://www.margheritapizza.uk/`.
+- Provide a working review account in App Store Connect notes:
+  - email
+  - password
+  - any 2FA bypass steps (if applicable)
+- Add clear reviewer steps in notes:
+  - sign in
+  - (optional) tap `Forgot password?` and submit review email to verify reset flow
+  - open Orders and Bookings
+  - change one status in each section
+  - sign out from More tab
+- If backend is IP-restricted, allow Apple's review IPs or provide a temporary review environment.
+- Confirm no placeholder text/screenshots/icons remain.
+- Confirm Privacy Policy URL is set in App Store Connect and reachable without login.
+- Set App Privacy answers in App Store Connect to match actual behavior:
+  - account identifiers (admin email)
+  - app functionality / diagnostics only if collected server-side
+  - no tracking unless you actually track across apps/websites
+- Ensure notification permission prompt appears in a valid flow (after sign-in) and app remains usable if denied.
+- If notifications are not required for core review flow, mention this in review notes.
+- Verify `ITSAppUsesNonExemptEncryption=false` remains accurate (no custom/proprietary crypto beyond system TLS/Keychain).
+- Test on a fresh physical device install:
+  - first launch
+  - login/logout cycle
+  - network loss and recovery
+  - foreground/background transitions

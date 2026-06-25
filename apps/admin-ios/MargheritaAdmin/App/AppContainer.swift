@@ -4,9 +4,6 @@ import Combine
 /// Manual DI container — mirrors Android `core/AppContainer.kt`.
 /// Stored in the SwiftUI environment so feature view models can resolve
 /// their dependencies via factory methods on the container.
-///
-/// `apiClient` is recreated whenever the user overrides the base URL on the
-/// Login screen so requests immediately hit the new server.
 @MainActor
 final class AppContainer: ObservableObject {
 
@@ -31,7 +28,7 @@ final class AppContainer: ObservableObject {
     init() {
         let session = SessionManager()
         self.session = session
-        let initialURL = session.overrideBaseURL ?? AppConfig.baseURL
+        let initialURL = AppConfig.baseURL
         self.baseURL = initialURL
         let client = ApiClient(baseURL: initialURL, sessionManager: session)
         self.apiClient = client
@@ -48,21 +45,13 @@ final class AppContainer: ObservableObject {
         self.sessionEvents = session.events
     }
 
-    /// Replace the underlying `ApiClient` (and every repo's reference to it).
-    /// We rebuild the repos rather than mutating because each repo holds a
-    /// `let api`; this is rare (only when the user changes Server URL).
-    func rebuildApiClient(with url: URL) {
-        baseURL = url
-        let client = ApiClient(baseURL: url, sessionManager: session)
-        apiClient = client
-        // Hot-swap each repo's api via reassignment isn't trivial since they
-        // hold `let`s. We instead vend new VMs the next time they're requested
-        // — `make*ViewModel()` always reads `self.apiClient` lazily.
+    func signOut() async {
+        let repo = AuthRepository(api: apiClient, session: session)
+        await repo.signOut()
     }
 
     // MARK: - View-model factories
-    // These exist so views never hold stale references after a URL swap.
-    // (Auth lives at the boundary so we always use the *current* apiClient.)
+    // Auth lives at the boundary so we always use the current apiClient.
 
     func makeAuthViewModel() -> AuthViewModel {
         AuthViewModel(
@@ -99,6 +88,12 @@ final class AppContainer: ObservableObject {
     }
     func makeDiscountsViewModel() -> DiscountsViewModel {
         DiscountsViewModel(repo: DiscountsRepository(api: apiClient))
+    }
+    func makeInvoicesListViewModel() -> InvoicesListViewModel {
+        InvoicesListViewModel(repo: OrdersRepository(api: apiClient))
+    }
+    func makeInvoiceDetailViewModel(orderId: String) -> InvoiceDetailViewModel {
+        InvoiceDetailViewModel(orderId: orderId, repo: OrdersRepository(api: apiClient))
     }
     func makeBadgesController(router: RootRouter) -> BadgesController {
         BadgesController(repo: DashboardRepository(api: apiClient),

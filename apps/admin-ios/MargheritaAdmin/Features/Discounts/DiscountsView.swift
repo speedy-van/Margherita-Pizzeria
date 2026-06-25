@@ -3,6 +3,7 @@ import SwiftUI
 struct DiscountsView: View {
     @EnvironmentObject var container: AppContainer
     @EnvironmentObject var dialog: DialogController
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: DiscountsViewModel
     @State private var editing: EditTarget?
 
@@ -22,8 +23,8 @@ struct DiscountsView: View {
             } else if case .failed(let m) = vm.phase, vm.items.isEmpty {
                 ErrorState(message: m) { Task { await vm.load() } }
             } else if vm.items.isEmpty {
-                EmptyState(title: "No discounts",
-                           message: "Tap + to create one.",
+                EmptyState(title: language.text("No discounts"),
+                           message: language.text("Tap + to create one."),
                            systemImage: "tag")
             } else {
                 List {
@@ -35,15 +36,16 @@ struct DiscountsView: View {
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     dialog.confirm(
-                                        title: "Delete \(d.code)?",
-                                        message: "This cannot be undone.",
-                                        confirmLabel: "Delete",
+                                        title: language.isArabic ? "حذف \(d.code)؟" : "Delete \(d.code)?",
+                                        message: language.text("This cannot be undone."),
+                                        confirmLabel: language.text("Delete"),
+                                        cancelLabel: language.text("Cancel"),
                                         destructive: true
                                     ) { ok in
                                         guard ok else { return }
                                         Task { _ = await vm.delete(d) }
                                     }
-                                } label: { Label("Delete", systemImage: "trash") }
+                                } label: { Label(language.text("Delete"), systemImage: "trash") }
                             }
                     }
                 }
@@ -53,7 +55,7 @@ struct DiscountsView: View {
             }
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle("Discounts")
+        .navigationTitle(language.text("Discounts"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { editing = EditTarget(discount: nil) } label: { Image(systemName: "plus") }
@@ -82,7 +84,7 @@ struct DiscountsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(d.code).font(.subheadline.weight(.semibold))
-                    StatusBadge(label: d.active ? "Active" : "Inactive",
+                    StatusBadge(label: d.active ? language.text("Active") : language.text("Inactive"),
                                 kind: d.active ? .success : .neutral)
                 }
                 Text(d.title).font(.caption)
@@ -95,11 +97,13 @@ struct DiscountsView: View {
 
     private func valueLabel(_ d: AdminDiscount) -> String {
         let v = d.type == "percentage" ? "\(d.value)%" : Format.pence(d.value)
-        return "\(v) · min \(Format.pence(d.minOrderPence))"
+        return "\(v) · \(language.text("min")) \(Format.pence(d.minOrderPence))"
     }
 }
 
 struct DiscountEditorView: View {
+    @EnvironmentObject var language: LanguageStore
+
     let target: AdminDiscount?
     let working: Bool
     let errorMessage: String?
@@ -121,40 +125,40 @@ struct DiscountEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Discount") {
-                    TextField("Code (e.g. WELCOME10)", text: $code)
+                Section(language.text("Discount")) {
+                    TextField(language.text("Code (e.g. WELCOME10)"), text: $code)
                         .autocapitalization(.allCharacters).disableAutocorrection(true)
-                    TextField("Title", text: $title)
-                    TextField("Description (optional)", text: $description, axis: .vertical)
+                    TextField(language.text("Title"), text: $title)
+                    TextField(language.text("Description (optional)"), text: $description, axis: .vertical)
                         .lineLimit(2...4)
-                    Picker("Type", selection: $type) {
-                        Text("Percentage").tag("percentage")
-                        Text("Fixed (£)").tag("fixed")
+                    Picker(language.text("Type"), selection: $type) {
+                        Text(language.text("Percentage")).tag("percentage")
+                        Text(language.text("Fixed (£)")).tag("fixed")
                     }
                     .pickerStyle(.segmented)
                     HStack {
-                        Text(type == "percentage" ? "Value (%)" : "Value (£)")
+                        Text(type == "percentage" ? language.text("Value (%)") : language.text("Value (£)"))
                         Spacer()
                         TextField("0", text: $valueText)
                             .keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 100)
                     }
                     HStack {
-                        Text("Min order (£)")
+                        Text(language.text("Min order (£)"))
                         Spacer()
                         TextField("0.00", text: $minOrderText)
                             .keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 100)
                     }
                 }
-                Section("Validity") {
-                    TextField("Starts at (ISO, optional)", text: $startsAt)
+                Section(language.text("Validity")) {
+                    TextField(language.text("Starts at (ISO, optional)"), text: $startsAt)
                         .autocapitalization(.none).disableAutocorrection(true)
-                    TextField("Ends at (ISO, optional)", text: $endsAt)
+                    TextField(language.text("Ends at (ISO, optional)"), text: $endsAt)
                         .autocapitalization(.none).disableAutocorrection(true)
-                    Toggle("Active", isOn: $active).tint(AppTheme.primary)
+                    Toggle(language.text("Active"), isOn: $active).tint(AppTheme.primary)
                 }
-                Section("Applies to") {
-                    Toggle("Delivery", isOn: $appliesToDelivery).tint(AppTheme.primary)
-                    Toggle("Collection", isOn: $appliesToCollection).tint(AppTheme.primary)
+                Section(language.text("Applies to")) {
+                    Toggle(language.text("Delivery"), isOn: $appliesToDelivery).tint(AppTheme.primary)
+                    Toggle(language.text("Collection"), isOn: $appliesToCollection).tint(AppTheme.primary)
                 }
                 if let e = errorMessage {
                     Section {
@@ -163,14 +167,14 @@ struct DiscountEditorView: View {
                     }
                 }
             }
-            .navigationTitle(target == nil ? "New discount" : "Edit discount")
+            .navigationTitle(target == nil ? language.text("New discount") : language.text("Edit discount"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel).disabled(working)
+                    Button(language.text("Cancel"), action: onCancel).disabled(working)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(working ? "Saving…" : "Save") { submit() }
+                    Button(working ? language.text("Saving…") : language.text("Save")) { submit() }
                         .disabled(working || code.isEmpty || title.isEmpty || rawValue == nil)
                 }
             }

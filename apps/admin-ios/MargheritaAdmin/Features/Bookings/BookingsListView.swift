@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BookingsListView: View {
     @EnvironmentObject var container: AppContainer
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: BookingsListViewModel
 
     init(container: AppContainer) {
@@ -14,7 +15,7 @@ struct BookingsListView: View {
             content
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle("Bookings")
+        .navigationTitle(language.text("Bookings"))
         .navigationDestination(for: Route.self) { route in
             if case .bookingDetail(let id) = route {
                 BookingDetailView(container: container, id: id)
@@ -27,10 +28,10 @@ struct BookingsListView: View {
     @ViewBuilder private var filters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: AppTheme.Space.sm) {
-                chip(label: "All",
+                chip(label: language.text("All"),
                      selected: vm.statusFilter == nil) { vm.statusFilter = nil }
                 ForEach(BookingStatuses.all, id: \.self) { s in
-                    chip(label: prettyStatus(s),
+                    chip(label: language.status(s),
                          selected: vm.statusFilter == s) { vm.statusFilter = s }
                 }
             }
@@ -45,8 +46,8 @@ struct BookingsListView: View {
         } else if case .failed(let m) = vm.phase, vm.items.isEmpty {
             ErrorState(message: m) { Task { await vm.load() } }
         } else if vm.filtered.isEmpty {
-            EmptyState(title: "No bookings",
-                       message: "Try clearing the filters.",
+            EmptyState(title: language.text("No bookings"),
+                       message: language.text("Try clearing the filters."),
                        systemImage: "calendar")
         } else {
             List {
@@ -64,9 +65,9 @@ struct BookingsListView: View {
     @ViewBuilder private func row(_ b: AdminBookingListItem) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(b.customerName ?? "Guest").font(.subheadline.weight(.semibold))
+                Text(b.customerName ?? language.text("Guest")).font(.subheadline.weight(.semibold))
                 Spacer()
-                StatusBadge(label: prettyStatus(b.status), kind: bookingStatusKind(b.status))
+                StatusBadge(label: language.status(b.status), kind: bookingStatusKind(b.status))
             }
             HStack {
                 Label("\(b.covers)", systemImage: "person.2.fill")

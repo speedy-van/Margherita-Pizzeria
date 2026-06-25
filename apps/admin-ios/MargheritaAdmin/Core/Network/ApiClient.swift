@@ -10,9 +10,8 @@ final class ApiClient {
     private let sessionManager: SessionManager
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
-    private let log: Bool
 
-    init(baseURL: URL, sessionManager: SessionManager, log: Bool = AppConfig.httpLoggingEnabled) {
+    init(baseURL: URL, sessionManager: SessionManager) {
         self.baseURL = baseURL
         self.sessionManager = sessionManager
         let cfg = URLSessionConfiguration.default
@@ -28,8 +27,6 @@ final class ApiClient {
         let enc = JSONEncoder()
         enc.outputFormatting = []
         self.encoder = enc
-
-        self.log = log
     }
 
     // MARK: - Public verbs
@@ -52,6 +49,10 @@ final class ApiClient {
 
     func delete<T: Decodable>(_ path: String) async -> ApiResult<T> {
         await call(path: path, method: "DELETE", query: [:], body: Empty?.none)
+    }
+
+    var isDemoMode: Bool {
+        sessionManager.currentToken == DemoData.token
     }
 
     // MARK: - Core
@@ -82,7 +83,7 @@ final class ApiClient {
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
-        req.setValue("MargheritaAdmin-iOS/0.1.1", forHTTPHeaderField: "User-Agent")
+        req.setValue(appUserAgent, forHTTPHeaderField: "User-Agent")
 
         if let token = sessionManager.currentToken, !token.isEmpty {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -95,10 +96,6 @@ final class ApiClient {
             } catch {
                 return .failure(.unknown("Encode body: \(error.localizedDescription)"))
             }
-        }
-
-        if log {
-            print("[API] → \(method) \(url.absoluteString)")
         }
 
         let data: Data, response: URLResponse
@@ -114,10 +111,6 @@ final class ApiClient {
             return .failure(.unknown("No HTTP response."))
         }
 
-        if log {
-            print("[API] ← \(http.statusCode) \(method) \(url.lastPathComponent) (\(data.count) bytes)")
-        }
-
         // Global 401 handling.
         if http.statusCode == 401 {
             await MainActor.run { sessionManager.handleUnauthorized() }
@@ -129,7 +122,10 @@ final class ApiClient {
         // Try to decode envelope.
         if data.isEmpty {
             if T.self == EmptyResponse.self {
-                return .success(EmptyResponse() as! T)
+                if let empty = EmptyResponse() as? T {
+                    return .success(empty)
+                }
+                return .failure(.decoding("Type mismatch for empty response."))
             }
             return .failure(.decoding("Empty response."))
         }
@@ -140,7 +136,10 @@ final class ApiClient {
                 return .success(value)
             }
             if env.ok, T.self == EmptyResponse.self {
-                return .success(EmptyResponse() as! T)
+                if let empty = EmptyResponse() as? T {
+                    return .success(empty)
+                }
+                return .failure(.decoding("Type mismatch for empty response."))
             }
             let msg = env.error?.message ?? "Request failed."
             let fields = env.error?.fields ?? [:]
@@ -156,6 +155,13 @@ final class ApiClient {
             let preview = String(data: data.prefix(200), encoding: .utf8) ?? ""
             return .failure(.decoding("\(error.localizedDescription) — \(preview)"))
         }
+    }
+
+    private var appUserAgent: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "0"
+        let build = info?["CFBundleVersion"] as? String ?? "0"
+        return "MargheritaAdmin-iOS/\(version) (\(build))"
     }
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct BookingDetailView: View {
     @EnvironmentObject var container: AppContainer
     @EnvironmentObject var dialog: DialogController
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: BookingDetailViewModel
 
     init(container: AppContainer, id: String) {
@@ -31,7 +32,7 @@ struct BookingDetailView: View {
             }
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle(vm.detail?.reference ?? "Booking")
+        .navigationTitle(vm.detail?.reference ?? language.text("Booking"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await vm.load() }
         .task { await vm.load() }
@@ -42,12 +43,13 @@ struct BookingDetailView: View {
             HStack {
                 Text(d.reference ?? d.id).font(.title3.bold())
                 Spacer()
-                StatusBadge(label: prettyStatus(d.status), kind: bookingStatusKind(d.status))
+                StatusBadge(label: language.status(d.status), kind: bookingStatusKind(d.status))
             }
-            Text("\(d.date) at \(d.timeSlot) · \(d.covers) covers")
+            Text("\(d.date) \(d.timeSlot) · \(d.covers) \(language.text("covers"))")
                 .font(.subheadline).foregroundStyle(AppTheme.onSurfaceMuted)
             if let dp = d.depositPence, dp > 0 {
-                Text("Deposit: \(Format.pence(dp)) \(d.depositPaid == true ? "(paid)" : "(unpaid)")")
+                let paidLabel = d.depositPaid == true ? language.text("paid") : language.text("unpaid")
+                Text("\(language.text("Deposit")): \(Format.pence(dp)) (\(paidLabel))")
                     .font(.caption).foregroundStyle(AppTheme.onSurfaceMuted)
             }
         }
@@ -56,19 +58,19 @@ struct BookingDetailView: View {
     }
 
     @ViewBuilder private func customer(_ d: AdminBookingDetail) -> some View {
-        SectionCard(title: "Customer") {
-            kv("Name", d.customerName ?? "—")
-            kv("Email", d.customerEmail ?? "—")
-            kv("Phone", d.customerPhone ?? "—")
-            if let t = d.tableId { kv("Table", t) }
-            if let n = d.notes, !n.isEmpty { kv("Notes", n) }
+        SectionCard(title: language.text("Customer")) {
+            kv(language.text("Name"), d.customerName ?? "—")
+            kv(language.text("Email"), d.customerEmail ?? "—")
+            kv(language.text("Phone"), d.customerPhone ?? "—")
+            if let t = d.tableId { kv(language.text("Table"), t) }
+            if let n = d.notes, !n.isEmpty { kv(language.text("Notes"), n) }
         }
     }
 
     @ViewBuilder private func statusControls(_ d: AdminBookingDetail) -> some View {
         let next = BookingStatuses.nextOptions(for: d.status)
         if !next.isEmpty {
-            SectionCard(title: "Update status") {
+            SectionCard(title: language.text("Update status")) {
                 FlowLayout(spacing: AppTheme.Space.sm) {
                     ForEach(next, id: \.self) { s in
                         Button {
@@ -76,7 +78,7 @@ struct BookingDetailView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 if vm.updatingStatus == s { ProgressView().controlSize(.small) }
-                                Text(prettyStatus(s)).font(.subheadline.weight(.semibold))
+                                Text(language.status(s)).font(.subheadline.weight(.semibold))
                             }
                             .padding(.horizontal, 14).padding(.vertical, 8)
                             .background(buttonColour(for: s))
@@ -94,9 +96,10 @@ struct BookingDetailView: View {
     private func confirmAndApply(_ status: String, current: String) {
         let destructive = ["cancelled", "rejected", "no_show"].contains(status)
         dialog.confirm(
-            title: "Set status to \(prettyStatus(status))?",
-            message: "Current status: \(prettyStatus(current))",
-            confirmLabel: "Apply",
+            title: "\(language.text("Update status")): \(language.status(status))?",
+            message: "\(language.text("Current status")): \(language.status(current))",
+            confirmLabel: language.text("Apply"),
+            cancelLabel: language.text("Cancel"),
             destructive: destructive
         ) { ok in
             guard ok else { return }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ImagesView: View {
     @EnvironmentObject var container: AppContainer
+    @EnvironmentObject var language: LanguageStore
     @StateObject private var vm: ImagesViewModel
     @State private var editing: AdminImage?
     @State private var editURL: String = ""
@@ -17,8 +18,8 @@ struct ImagesView: View {
             } else if case .failed(let m) = vm.phase, vm.items.isEmpty {
                 ErrorState(message: m) { Task { await vm.load() } }
             } else if vm.items.isEmpty {
-                EmptyState(title: "No images registered",
-                           message: "Image slots are seeded server-side.",
+                EmptyState(title: language.text("No images registered"),
+                           message: language.text("Image slots are seeded server-side."),
                            systemImage: "photo")
             } else {
                 List {
@@ -32,7 +33,7 @@ struct ImagesView: View {
                                     }
                                 }
                                 Spacer()
-                                Button("Edit") {
+                                Button(language.text("Edit")) {
                                     editing = img
                                     editURL = img.url ?? ""
                                 }
@@ -44,7 +45,7 @@ struct ImagesView: View {
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                             } else {
-                                Text("(no URL set)").font(.caption2).foregroundStyle(AppTheme.danger)
+                                Text(language.text("(no URL set)")).font(.caption2).foregroundStyle(AppTheme.danger)
                             }
                         }
                         .padding(.vertical, 4)
@@ -57,7 +58,7 @@ struct ImagesView: View {
             }
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle("Images")
+        .navigationTitle(language.text("Images"))
         .task { await vm.load() }
         .refreshable { await vm.load() }
         .sheet(item: $editing) { img in
@@ -74,14 +75,14 @@ struct ImagesView: View {
                         }
                     }
                 }
-                .navigationTitle("Image URL")
+                .navigationTitle(language.text("Image URL"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { editing = nil }
+                        Button(language.text("Cancel")) { editing = nil }
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(vm.working ? "Saving…" : "Save") {
+                        Button(vm.working ? language.text("Saving…") : language.text("Save")) {
                             Task {
                                 let ok = await vm.updateURL(id: img.id, url: editURL)
                                 if ok { editing = nil }

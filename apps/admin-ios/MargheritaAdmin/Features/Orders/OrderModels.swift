@@ -52,23 +52,24 @@ struct UpdateOrderStatusBody: Encodable { let status: String }
 
 enum OrderStatuses {
     static let all: [String] = [
-        "received", "pending_payment", "preparing",
-        "ready", "out_for_delivery",
-        "completed", "delivered",
-        "cancelled", "refunded",
+        "pending_payment", "received", "making",
+        "ready", "out_for_delivery", "delivered",
+        "cancelled", "rejected",
     ]
     /// Next-step suggestions per current status.
     static func nextOptions(for current: String, type: String) -> [String] {
         switch current.lowercased() {
-        case "received", "pending_payment":
-            return ["preparing", "cancelled"]
-        case "preparing":
-            return type == "delivery" ? ["out_for_delivery", "cancelled"] : ["ready", "cancelled"]
+        case "pending_payment":
+            return ["received", "cancelled"]
+        case "received":
+            return ["making", "cancelled", "rejected"]
+        case "making":
+            return ["ready", "cancelled"]
         case "ready":
-            return ["completed", "cancelled"]
+            return type == "delivery" ? ["out_for_delivery", "cancelled"] : ["delivered", "cancelled"]
         case "out_for_delivery":
             return ["delivered", "cancelled"]
-        case "completed", "delivered", "cancelled", "refunded":
+        case "delivered", "cancelled", "rejected":
             return []
         default:
             return all

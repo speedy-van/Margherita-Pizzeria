@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct MenuItemEditorView: View {
+    @EnvironmentObject var language: LanguageStore
+
     let target: MenuEditTarget
     let onSubmit: (MenuItemInput) -> Void
     let onCancel: () -> Void
@@ -18,32 +20,32 @@ struct MenuItemEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Item") {
-                    TextField("Name", text: $name)
-                    TextField("Description (optional)", text: $description, axis: .vertical)
+                Section(language.text("Item")) {
+                    TextField(language.text("Name"), text: $name)
+                    TextField(language.text("Description (optional)"), text: $description, axis: .vertical)
                         .lineLimit(2...4)
-                    TextField("Price (£)", text: $priceText)
+                    TextField(language.text("Price (£)"), text: $priceText)
                         .keyboardType(.decimalPad)
-                    Toggle("Available", isOn: $available)
+                    Toggle(language.text("Available"), isOn: $available)
                 }
-                Section("Category") {
-                    Picker("Category", selection: Binding(
+                Section(language.text("Category")) {
+                    Picker(language.text("Category"), selection: Binding(
                         get: { categoryId ?? "" },
                         set: { categoryId = $0.isEmpty ? nil : $0 }
                     )) {
-                        Text("Uncategorised").tag("")
+                        Text(language.text("Uncategorised")).tag("")
                         ForEach(target.categories) { c in
                             Text(c.name).tag(c.id)
                         }
                     }
                 }
-                Section("Image URL") {
+                Section(language.text("Image URL")) {
                     TextField("https://…", text: $imageUrl)
                         .keyboardType(.URL)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                 }
-                Section("Allergens (comma-separated)") {
+                Section(language.text("Allergens (comma-separated)")) {
                     TextField("gluten, dairy, …", text: $allergensText)
                         .autocapitalization(.none)
                 }
@@ -54,14 +56,14 @@ struct MenuItemEditorView: View {
                     }
                 }
             }
-            .navigationTitle(target.item == nil ? "New item" : "Edit item")
+            .navigationTitle(target.item == nil ? language.text("New item") : language.text("Edit item"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel).disabled(working)
+                    Button(language.text("Cancel"), action: onCancel).disabled(working)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(working ? "Saving…" : "Save") {
+                    Button(working ? language.text("Saving…") : language.text("Save")) {
                         guard let pence = parsePence(priceText), !name.isEmpty else { return }
                         let allergens = allergensText
                             .split(separator: ",")
