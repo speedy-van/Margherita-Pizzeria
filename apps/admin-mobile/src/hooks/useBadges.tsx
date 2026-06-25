@@ -8,11 +8,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { apiCall } from "@/api/client";
-import type { AdminDashboardStats } from "@/api/types";
+import { apiCall, getToken } from "@/api/client";
+import { isDemoToken } from "@/api/demo";
+import type { AdminDashboardStats, AdminOrderListItem } from "@/api/types";
 import { useSession } from "@/auth/SessionContext";
-import { useDialog } from "@/components/dialog";
+import { useDialog, type DialogAction } from "@/components/dialog";
 import {
   armAlertSoundOnFirstGesture,
   ensureBrowserNotificationPermission,
@@ -21,6 +23,13 @@ import {
   startAlertSound,
   stopAlertSound,
 } from "@/hooks/alerts";
+import {
+  canTransitionOrderStatus,
+  formatCurrencyGBP,
+  inferPaymentStatus,
+  isActiveOrder,
+  isTestOrderHeuristic,
+} from "@/lib/order-operations";
 import { navigateToBooking, navigateToOrder } from "@/navigation/ref";
 
 type Badges = {
@@ -39,6 +48,31 @@ const BadgesContext = createContext<Badges>({
 // 30s was way too slow for a live till — switched to 8s. The dashboard
 // endpoint is cheap (single query) so this is fine.
 const POLL_MS = 8_000;
+const ALERTED_ORDER_IDS_KEY = "margherita-admin.alerted-order-ids.v1";
+const MAX_STORED_ALERT_IDS = 120;
+
+async function loadStoredOrderIds(): Promise<Set<string>> {
+  try {
+    const raw = await AsyncStorage.getItem(ALERTED_ORDER_IDS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === "string")
+        : [],
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+async function persistOrderIds(ids: Set<string>): Promise<void> {
+  const trimmed = Array.from(ids).slice(-MAX_STORED_ALERT_IDS);
+  try {
+    await AsyncStorage.setItem(ALERTED_ORDER_IDS_KEY, JSON.stringify(trimmed));
+  } catch {
+    /* ignore storage failures; alerts still work in memory */
+  }
+}
 
 export function BadgesProvider({ children }: { children: ReactNode }): JSX.Element {
   const { status } = useSession();
@@ -52,6 +86,7 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
   // a flood of "new order" alerts on launch.
   const seenOrderIds = useRef<Set<string> | null>(null);
   const seenBookingIds = useRef<Set<string> | null>(null);
+  const demoAlertShown = useRef(false);
 
   const refresh = useCallback(async () => {
     if (status !== "signed-in" || inflight.current) return;
@@ -62,11 +97,40 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
     inflight.current = false;
     if (!res.ok) return;
 
-    const active = res.data.latestOrders.filter((o) =>
-      ["received", "making", "ready", "out_for_delivery"].includes(o.status),
-    ).length;
+    const active = res.data.latestOrders.filter(isActiveOrder).length;
     setActiveOrders(active);
     setPendingBookings(res.data.pendingBookingsCount ?? 0);
+
+    if (isDemoToken(getToken()) && !demoAlertShown.current) {
+      const demoOrder = res.data.latestOrders.find((order) => order.id === "demo-order-1001")
+        ?? res.data.latestOrders[0];
+      if (demoOrder) {
+        demoAlertShown.current = true;
+        const title = "Demo new delivery order";
+        const body = `${demoOrder.customerName} · ${demoOrder.itemCount} items · ${formatCurrencyGBP(
+          demoOrder.totalPence,
+        )}`;
+        void startAlertSound();
+        showBrowserNotification(title, body);
+        void dialog.show({
+          title,
+          message:
+            `${body}\n\nThis is a safe Apple Review demo popup. It does not create or change a real order.`,
+          tone: "success",
+          playSound: false,
+          dismissOnBackdrop: false,
+          onClose: () => stopAlertSound(),
+          actions: [
+            { label: "Dismiss", tone: "secondary" },
+            {
+              label: "View demo order",
+              tone: "primary",
+              onPress: () => navigateToOrder(demoOrder.id),
+            },
+          ],
+        });
+      }
+    }
 
     // --- New-item detection ----------------------------------------------
     const incomingOrderIds = new Set(res.data.latestOrders.map((o) => o.id));
@@ -75,28 +139,34 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
     );
 
     if (seenOrderIds.current === null) {
-      seenOrderIds.current = incomingOrderIds;
+      const stored = await loadStoredOrderIds();
+      for (const id of incomingOrderIds) stored.add(id);
+      seenOrderIds.current = stored;
+      void persistOrderIds(stored);
     } else {
       const newOrders = res.data.latestOrders.filter(
         (o) =>
           !seenOrderIds.current!.has(o.id) &&
-          (o.status === "received" || o.status === "pending_payment"),
+          o.status === "received",
       );
       for (const id of incomingOrderIds) seenOrderIds.current.add(id);
-      if (newOrders.length > 0) {
-        const first = newOrders[0]!;
+      void persistOrderIds(seenOrderIds.current);
+      const alertableOrders = newOrders.filter(
+        (order) => !isTestOrderHeuristic(order),
+      );
+      if (alertableOrders.length > 0) {
+        const first = alertableOrders[0]!;
         const title =
-          newOrders.length === 1
+          alertableOrders.length === 1
             ? `New ${first.type} order`
-            : `${newOrders.length} new orders`;
+            : `${alertableOrders.length} new orders`;
+        const payment = inferPaymentStatus(first);
         const body =
-          newOrders.length === 1
-            ? `${first.customerName} · ${first.itemCount} item${
+          alertableOrders.length === 1
+            ? `${first.reference ?? first.id.slice(0, 8)}\n${first.customerName} · ${first.type}\n${first.itemCount} item${
                 first.itemCount === 1 ? "" : "s"
-              } · £${(first.totalPence / 100).toFixed(2)}`
-            : `Latest: ${first.customerName} · £${(
-                first.totalPence / 100
-              ).toFixed(2)}`;
+              } · ${formatCurrencyGBP(first.totalPence)}\n${payment.label}`
+            : `Latest: ${first.customerName} · ${formatCurrencyGBP(first.totalPence)}`;
         // Loop the alert sound until the owner taps a button. The dialog's
         // onClose hook stops it for any exit path (button / Android back).
         void startAlertSound();
@@ -105,16 +175,10 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
           title,
           message: body,
           tone: "success",
+          playSound: false,
           dismissOnBackdrop: false,
           onClose: () => stopAlertSound(),
-          actions: [
-            { label: "Dismiss", tone: "secondary" },
-            {
-              label: "View order",
-              tone: "primary",
-              onPress: () => navigateToOrder(first.id),
-            },
-          ],
+          actions: buildOrderAlertActions(first, refresh),
         });
       }
     }
@@ -142,6 +206,7 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
           title,
           message: body,
           tone: "info",
+          playSound: false,
           dismissOnBackdrop: false,
           onClose: () => stopAlertSound(),
           actions: [
@@ -163,6 +228,7 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
       setPendingBookings(0);
       seenOrderIds.current = null;
       seenBookingIds.current = null;
+      demoAlertShown.current = false;
       stopAlertSound();
       return;
     }
@@ -187,6 +253,47 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
   return (
     <BadgesContext.Provider value={value}>{children}</BadgesContext.Provider>
   );
+}
+
+function buildOrderAlertActions(
+  order: AdminOrderListItem,
+  refresh: () => Promise<void>,
+): DialogAction[] {
+  const actions: DialogAction[] = [
+    { label: "Dismiss", tone: "secondary" as const },
+    {
+      label: "View order",
+      tone: "primary" as const,
+      onPress: () => navigateToOrder(order.id),
+    },
+  ];
+  if (canTransitionOrderStatus(order.status, "making")) {
+    actions.push({
+      label: "Accept",
+      tone: "primary" as const,
+      onPress: () => {
+        void apiCall({
+          method: "POST",
+          path: `/api/admin/orders/${order.id}/status`,
+          body: { status: "making" },
+        }).then(() => refresh());
+      },
+    });
+  }
+  if (canTransitionOrderStatus(order.status, "rejected")) {
+    actions.push({
+      label: "Reject",
+      tone: "destructive" as const,
+      onPress: () => {
+        void apiCall({
+          method: "POST",
+          path: `/api/admin/orders/${order.id}/status`,
+          body: { status: "rejected" },
+        }).then(() => refresh());
+      },
+    });
+  }
+  return actions;
 }
 
 export function useBadges(): Badges {

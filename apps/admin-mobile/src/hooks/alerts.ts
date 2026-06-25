@@ -16,16 +16,52 @@
 import { Platform, Vibration } from "react-native";
 import { Image } from "react-native";
 import { Asset } from "expo-asset";
+import {
+  createAudioPlayer,
+  setAudioModeAsync,
+  type AudioPlayer,
+} from "expo-audio";
 
 // Bundled as a Metro asset (mp3 is in default assetExts). On web require()
 // returns an asset module; we feed it to Image.resolveAssetSource to get a
 // usable URI on every platform.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const NEW_ORDER_SOUND = require("../../assets/sounds/new-order.mp3") as number;
 
 let primedAudio: HTMLAudioElement | null = null;
 let primeAttempted = false;
 let vibrateActive = false;
+let audioModeReady = false;
+let nativeLoopSound: AudioPlayer | null = null;
+let nativeOneShotSound: AudioPlayer | null = null;
+let alertPlaybackToken = 0;
+
+async function ensureNativeAudioMode(): Promise<void> {
+  if (Platform.OS === "web") return;
+  if (audioModeReady) return;
+  await setAudioModeAsync({
+    allowsRecording: false,
+    playsInSilentMode: true,
+    shouldPlayInBackground: false,
+    shouldRouteThroughEarpiece: false,
+    interruptionMode: "doNotMix",
+  });
+  audioModeReady = true;
+}
+
+async function unloadNativeSound(sound: AudioPlayer | null): Promise<void> {
+  if (!sound) return;
+  try {
+    sound.pause();
+    sound.currentTime = 0;
+  } catch {
+    /* ignore */
+  }
+  try {
+    sound.remove();
+  } catch {
+    /* ignore */
+  }
+}
 
 function resolveSoundUri(): string | null {
   try {
@@ -51,7 +87,7 @@ export async function primeAlertSound(): Promise<void> {
   if (Platform.OS !== "web") return;
   if (primeAttempted) return;
   primeAttempted = true;
-  if (typeof window === "undefined" || typeof Audio === "undefined") return;
+  if (typeof window === "undefined" || typeof globalThis.Audio === "undefined") return;
   const uri = resolveSoundUri();
   if (!uri) {
     // eslint-disable-next-line no-console
@@ -59,7 +95,7 @@ export async function primeAlertSound(): Promise<void> {
     return;
   }
   try {
-    const a = new Audio(uri);
+    const a = new globalThis.Audio(uri);
     a.loop = true;
     a.volume = 1.0;
     a.preload = "auto";
@@ -81,8 +117,7 @@ export async function primeAlertSound(): Promise<void> {
  * (typically from the dialog's onClose handler).
  *
  * Web: resumes the primed HTMLAudioElement with loop=true.
- * Native: repeating vibration pattern (looped audio on native needs
- *   expo-av which is intentionally not wired yet).
+ * Native: uses expo-audio player with loop enabled.
  */
 export function startAlertSound(): void {
   stopAlertSound();
@@ -96,9 +131,9 @@ export function startAlertSound(): void {
         "[alerts] primedAudio is null — call primeAlertSound() from a user gesture",
       );
       const uri = resolveSoundUri();
-      if (!uri || typeof Audio === "undefined") return;
+      if (!uri || typeof globalThis.Audio === "undefined") return;
       try {
-        const a = new Audio(uri);
+        const a = new globalThis.Audio(uri);
         a.loop = true;
         a.volume = 1.0;
         void a.play().catch((err) => {
@@ -124,6 +159,27 @@ export function startAlertSound(): void {
     return;
   }
 
+  const token = ++alertPlaybackToken;
+  void (async () => {
+    try {
+      await ensureNativeAudioMode();
+      await unloadNativeSound(nativeLoopSound);
+      nativeLoopSound = null;
+      const sound = createAudioPlayer(NEW_ORDER_SOUND);
+      sound.volume = 1.0;
+      sound.loop = true;
+      sound.play();
+      if (token !== alertPlaybackToken) {
+        await unloadNativeSound(sound);
+        return;
+      }
+      nativeLoopSound = sound;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[alerts] native loop play failed:", err);
+    }
+  })();
+
   try {
     Vibration.vibrate([0, 400, 200, 400], true);
     vibrateActive = true;
@@ -134,6 +190,7 @@ export function startAlertSound(): void {
 
 /** Stop the looping alert sound and any vibration. Safe to call multiple times. */
 export function stopAlertSound(): void {
+  alertPlaybackToken += 1;
   if (primedAudio) {
     try {
       primedAudio.pause();
@@ -150,6 +207,58 @@ export function stopAlertSound(): void {
     }
     vibrateActive = false;
   }
+  if (Platform.OS !== "web") {
+    const loop = nativeLoopSound;
+    nativeLoopSound = null;
+    const oneShot = nativeOneShotSound;
+    nativeOneShotSound = null;
+    void unloadNativeSound(loop);
+    void unloadNativeSound(oneShot);
+  }
+}
+
+/** Play a short one-shot popup tone. Used by generic dialogs. */
+export function playPopupSound(): void {
+  if (Platform.OS === "web") {
+    const uri = resolveSoundUri();
+    if (!uri || typeof globalThis.Audio === "undefined") return;
+    try {
+      const a = new globalThis.Audio(uri);
+      a.loop = false;
+      a.volume = 1.0;
+      a.currentTime = 0;
+      void a.play().catch(() => undefined);
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+
+  void (async () => {
+    try {
+      await ensureNativeAudioMode();
+      await unloadNativeSound(nativeOneShotSound);
+      nativeOneShotSound = null;
+      const sound = createAudioPlayer(NEW_ORDER_SOUND, {
+        updateInterval: 100,
+      });
+      sound.volume = 1.0;
+      sound.loop = false;
+      const subscription = sound.addListener("playbackStatusUpdate", (status) => {
+        if (!status.playing && status.duration > 0 && status.currentTime >= status.duration) {
+          subscription.remove();
+          const finished = nativeOneShotSound;
+          nativeOneShotSound = null;
+          void unloadNativeSound(finished);
+        }
+      });
+      sound.play();
+      nativeOneShotSound = sound;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[alerts] popup tone failed:", err);
+    }
+  })();
 }
 
 /** Ask the browser for permission to show OS notifications. No-op on native. */
@@ -197,7 +306,11 @@ export function showBrowserNotification(title: string, body: string): void {
 
 /** Back-compat no-op: priming now handles preload as a side effect. */
 export function preloadAlertSound(): void {
-  // No-op. The Audio element created by primeAlertSound() preloads itself.
+  if (Platform.OS === "web") {
+    // No-op. The Audio element created by primeAlertSound() preloads itself.
+    return;
+  }
+  void ensureNativeAudioMode();
 }
 
 /**

@@ -1,11 +1,12 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSession } from "@/auth/SessionContext";
 import { palette } from "@/format";
 import { useBadges } from "@/hooks/useBadges";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { MainStackParamList } from "@/navigation/types";
 import { BookingDetailScreen } from "@/screens/BookingDetailScreen";
 import { BookingsScreen } from "@/screens/BookingsScreen";
@@ -14,6 +15,8 @@ import { DiscountEditScreen } from "@/screens/DiscountEditScreen";
 import { DiscountsScreen } from "@/screens/DiscountsScreen";
 import { ForgotPasswordScreen } from "@/screens/ForgotPasswordScreen";
 import { ImagesScreen } from "@/screens/ImagesScreen";
+import { InvoicesScreen, InvoiceDetailScreen } from "@/screens/InvoicesScreen";
+import { KitchenScreen } from "@/screens/KitchenScreen";
 import { LoginScreen } from "@/screens/LoginScreen";
 import { MenuItemEditScreen } from "@/screens/MenuItemEditScreen";
 import { MenuScreen } from "@/screens/MenuScreen";
@@ -30,6 +33,7 @@ type AuthStackParamList = {
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const DashboardStack = createNativeStackNavigator<MainStackParamList>();
 const OrdersStack = createNativeStackNavigator<MainStackParamList>();
+const KitchenStack = createNativeStackNavigator<MainStackParamList>();
 const BookingsStack = createNativeStackNavigator<MainStackParamList>();
 const MenuStack = createNativeStackNavigator<MainStackParamList>();
 const MoreStack = createNativeStackNavigator<MainStackParamList>();
@@ -42,74 +46,96 @@ const headerOptions = {
 };
 
 function DashboardNavigator(): JSX.Element {
+  const { t } = useLanguage();
   return (
     <DashboardStack.Navigator screenOptions={headerOptions}>
       <DashboardStack.Screen
         name="DashboardHome"
         component={DashboardScreen}
-        options={{ title: "Dashboard" }}
+        options={{ title: t("Dashboard") }}
       />
       <DashboardStack.Screen
         name="OrderDetail"
         component={OrderDetailScreen}
-        options={{ title: "Order" }}
+        options={{ title: t("Order") }}
       />
       <DashboardStack.Screen
         name="BookingDetail"
         component={BookingDetailScreen}
-        options={{ title: "Booking" }}
+        options={{ title: t("Booking") }}
       />
     </DashboardStack.Navigator>
   );
 }
 
 function OrdersNavigator(): JSX.Element {
+  const { t } = useLanguage();
   return (
     <OrdersStack.Navigator screenOptions={headerOptions}>
       <OrdersStack.Screen
         name="OrdersHome"
         component={OrdersScreen}
-        options={{ title: "Orders" }}
+        options={{ title: t("Orders") }}
       />
       <OrdersStack.Screen
         name="OrderDetail"
         component={OrderDetailScreen}
-        options={{ title: "Order" }}
+        options={{ title: t("Order") }}
       />
     </OrdersStack.Navigator>
   );
 }
 
+function KitchenNavigator(): JSX.Element {
+  const { t } = useLanguage();
+  return (
+    <KitchenStack.Navigator screenOptions={headerOptions}>
+      <KitchenStack.Screen
+        name="KitchenHome"
+        component={KitchenScreen}
+        options={{ title: t("Kitchen") }}
+      />
+      <KitchenStack.Screen
+        name="OrderDetail"
+        component={OrderDetailScreen}
+        options={{ title: t("Order") }}
+      />
+    </KitchenStack.Navigator>
+  );
+}
+
 function BookingsNavigator(): JSX.Element {
+  const { t } = useLanguage();
   return (
     <BookingsStack.Navigator screenOptions={headerOptions}>
       <BookingsStack.Screen
         name="BookingsHome"
         component={BookingsScreen}
-        options={{ title: "Bookings" }}
+        options={{ title: t("Bookings") }}
       />
       <BookingsStack.Screen
         name="BookingDetail"
         component={BookingDetailScreen}
-        options={{ title: "Booking" }}
+        options={{ title: t("Booking") }}
       />
     </BookingsStack.Navigator>
   );
 }
 
 function MenuNavigator(): JSX.Element {
+  const { t } = useLanguage();
   return (
     <MenuStack.Navigator screenOptions={headerOptions}>
       <MenuStack.Screen
         name="MenuHome"
         component={MenuScreen}
-        options={{ title: "Menu" }}
+        options={{ title: t("Menu") }}
       />
       <MenuStack.Screen
         name="MenuItemEdit"
         component={MenuItemEditScreen}
         options={({ route }) => ({
-          title: route.params.id ? "Edit item" : "New item",
+          title: route.params.id ? t("Edit item") : t("New item"),
         })}
       />
     </MenuStack.Navigator>
@@ -117,37 +143,49 @@ function MenuNavigator(): JSX.Element {
 }
 
 function MoreNavigator(): JSX.Element {
+  const { t } = useLanguage();
   return (
     <MoreStack.Navigator screenOptions={headerOptions}>
-      <MoreStack.Screen name="MoreHome" options={{ title: "More" }}>
+      <MoreStack.Screen name="MoreHome" options={{ title: t("More") }}>
         {({ navigation }) => (
           <MoreScreen
             goSettings={() => navigation.navigate("Settings")}
+            goInvoices={() => navigation.navigate("Invoices")}
             goImages={() => navigation.navigate("Images")}
             goDiscounts={() => navigation.navigate("Discounts")}
           />
         )}
       </MoreStack.Screen>
       <MoreStack.Screen
+        name="Invoices"
+        component={InvoicesScreen}
+        options={{ title: t("Invoices") }}
+      />
+      <MoreStack.Screen
+        name="InvoiceDetail"
+        component={InvoiceDetailScreen}
+        options={{ title: t("Invoice") }}
+      />
+      <MoreStack.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ title: "Settings" }}
+        options={{ title: t("Settings") }}
       />
       <MoreStack.Screen
         name="Images"
         component={ImagesScreen}
-        options={{ title: "Images" }}
+        options={{ title: t("Images") }}
       />
       <MoreStack.Screen
         name="Discounts"
         component={DiscountsScreen}
-        options={{ title: "Discounts" }}
+        options={{ title: t("Discounts") }}
       />
       <MoreStack.Screen
         name="DiscountEdit"
         component={DiscountEditScreen}
         options={({ route }) => ({
-          title: route.params.id ? "Edit discount" : "New discount",
+          title: route.params.id ? t("Edit discount") : t("New discount"),
         })}
       />
     </MoreStack.Navigator>
@@ -155,6 +193,7 @@ function MoreNavigator(): JSX.Element {
 }
 
 function AuthNavigator(): JSX.Element {
+  const { t } = useLanguage();
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login">
@@ -168,7 +207,7 @@ function AuthNavigator(): JSX.Element {
         name="ForgotPassword"
         options={{
           headerShown: true,
-          title: "Forgot password",
+          title: t("Forgot password"),
           ...headerOptions,
         }}
       >
@@ -182,6 +221,7 @@ function AuthNavigator(): JSX.Element {
 
 function MainNavigator(): JSX.Element {
   const { activeOrders, pendingBookings } = useBadges();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   // Lift the tab bar well above the system navigation bar / home indicator so
   // both icons AND labels stay fully visible in the thumb zone.
@@ -216,14 +256,20 @@ function MainNavigator(): JSX.Element {
         name="Home"
         component={DashboardNavigator}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="🏠" color={color} />,
+          tabBarLabel: t("Home"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="Orders"
         component={OrdersNavigator}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="🧾" color={color} />,
+          tabBarLabel: t("Orders"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="receipt-outline" size={size} color={color} />
+          ),
           tabBarBadge: activeOrders > 0 ? activeOrders : undefined,
         }}
       />
@@ -231,31 +277,44 @@ function MainNavigator(): JSX.Element {
         name="Bookings"
         component={BookingsNavigator}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="📅" color={color} />,
+          tabBarLabel: t("Bookings"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
           tabBarBadge: pendingBookings > 0 ? pendingBookings : undefined,
+        }}
+      />
+      <Tabs.Screen
+        name="Kitchen"
+        component={KitchenNavigator}
+        options={{
+          tabBarLabel: t("Kitchen"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="flame-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="Menu"
         component={MenuNavigator}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="🍕" color={color} />,
+          tabBarLabel: t("Menu"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="restaurant-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="More"
         component={MoreNavigator}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="⚙️" color={color} />,
+          tabBarLabel: t("More"),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="ellipsis-horizontal" size={size} color={color} />
+          ),
         }}
       />
     </Tabs.Navigator>
-  );
-}
-
-function TabIcon({ icon, color }: { icon: string; color: string }): JSX.Element {
-  return (
-    <Text style={{ fontSize: 20, color, lineHeight: 22 }}>{icon}</Text>
   );
 }
 

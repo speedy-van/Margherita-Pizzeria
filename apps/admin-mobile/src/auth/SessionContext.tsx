@@ -13,26 +13,35 @@ import {
   apiCall,
   bootstrapSession,
   getBaseUrl,
+  getLastAuthCheck,
+  resetBaseUrl as persistResetBaseUrl,
   setBaseUrl as persistBaseUrl,
   setDevBypass as persistDevBypass,
   setToken as persistToken,
+  setUnauthorizedHandler,
+  type AuthCheckStatus,
 } from "@/api/client";
 import type { AdminUser, LoginResponse } from "@/api/types";
 import { STORAGE_KEYS } from "@/config";
 
 type SessionStatus = "unknown" | "signed-out" | "signed-in";
 
+type MeResponse = { user: AdminUser };
+
 type SessionContextValue = {
   status: SessionStatus;
   user: AdminUser | null;
   baseUrl: string;
   devBypass: boolean;
+  lastAuthCheck: AuthCheckStatus | null;
+  sessionMessage: string | null;
   signIn: (
     email: string,
     password: string,
   ) => Promise<{ ok: true } | { ok: false; message: string }>;
   signOut: () => Promise<void>;
   updateBaseUrl: (url: string) => Promise<void>;
+  resetBaseUrl: () => Promise<void>;
   setDevBypass: (enabled: boolean) => Promise<void>;
 };
 
@@ -47,6 +56,34 @@ export function SessionProvider({
   const [user, setUser] = useState<AdminUser | null>(null);
   const [baseUrl, setBaseUrlState] = useState<string>(getBaseUrl());
   const [devBypass, setDevBypassState] = useState<boolean>(false);
+  const [lastAuthCheck, setLastAuthCheck] = useState<AuthCheckStatus | null>(
+    null,
+  );
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+
+  const clearSession = useCallback(
+    async (message: string | null): Promise<void> => {
+      await persistToken(null);
+      setUser(null);
+      setStatus("signed-out");
+      setSessionMessage(message);
+      setLastAuthCheck(getLastAuthCheck());
+    },
+    [],
+  );
+
+  // Wire the global 401 handler exactly once. Any authenticated request
+  // that comes back 401 will land here and bounce the user to login.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      void clearSession(
+        "Your session expired or was rejected. Please sign in again.",
+      );
+    });
+    return () => {
+      setUnauthorizedHandler(null);
+    };
+  }, [clearSession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,9 +103,19 @@ export function SessionProvider({
           }
         }
         setStatus("signed-in");
-      } else if (boot.devBypass) {
-        setUser({ id: "dev", email: "dev@local", role: "admin" });
-        setStatus("signed-in");
+        // Re-validate the token against the server. If the backend now
+        // rejects it (rotated secret, deleted user, role demoted) the
+        // 401 handler above will clear the session automatically.
+        const me = await apiCall<MeResponse>({ path: "/api/mobile/admin/me" });
+        if (cancelled) return;
+        setLastAuthCheck(getLastAuthCheck());
+        if (me.ok && me.data?.user) {
+          setUser(me.data.user);
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.user,
+            JSON.stringify(me.data.user),
+          );
+        }
       } else {
         setStatus("signed-out");
       }
@@ -80,6 +127,7 @@ export function SessionProvider({
 
   const signIn = useCallback(
     async (email: string, password: string) => {
+      setSessionMessage(null);
       const res = await apiCall<LoginResponse>({
         method: "POST",
         path: "/api/mobile/admin/login",
@@ -97,7 +145,24 @@ export function SessionProvider({
         STORAGE_KEYS.user,
         JSON.stringify(res.data.user),
       );
-      setUser(res.data.user);
+
+      // Self-test: confirm the freshly-issued token is actually accepted
+      // by the admin API. Catches misconfigured prod URLs (e.g. apex vs
+      // www) where login succeeds but every subsequent admin request 401s.
+      const me = await apiCall<MeResponse>({ path: "/api/mobile/admin/me" });
+      setLastAuthCheck(getLastAuthCheck());
+      if (!me.ok) {
+        await persistToken(null);
+        setUser(null);
+        setStatus("signed-out");
+        return {
+          ok: false as const,
+          message:
+            "Login succeeded but admin session was rejected. Please contact support.",
+        };
+      }
+
+      setUser(me.data?.user ?? res.data.user);
       setStatus("signed-in");
       return { ok: true as const };
     },
@@ -111,10 +176,16 @@ export function SessionProvider({
     await persistToken(null);
     setUser(null);
     setStatus("signed-out");
+    setSessionMessage(null);
   }, []);
 
   const updateBaseUrl = useCallback(async (url: string) => {
     await persistBaseUrl(url);
+    setBaseUrlState(getBaseUrl());
+  }, []);
+
+  const resetBaseUrl = useCallback(async () => {
+    await persistResetBaseUrl();
     setBaseUrlState(getBaseUrl());
   }, []);
 
@@ -129,12 +200,27 @@ export function SessionProvider({
       user,
       baseUrl,
       devBypass,
+      lastAuthCheck,
+      sessionMessage,
       signIn,
       signOut,
       updateBaseUrl,
+      resetBaseUrl,
       setDevBypass,
     }),
-    [status, user, baseUrl, devBypass, signIn, signOut, updateBaseUrl, setDevBypass],
+    [
+      status,
+      user,
+      baseUrl,
+      devBypass,
+      lastAuthCheck,
+      sessionMessage,
+      signIn,
+      signOut,
+      updateBaseUrl,
+      resetBaseUrl,
+      setDevBypass,
+    ],
   );
 
   return (

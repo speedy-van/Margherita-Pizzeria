@@ -3,33 +3,48 @@
     "name": "Margherita Admin",
     "slug": "margherita-pizzaa",
     "owner": "ahmadawadalwakai",
-    "version": "0.1.0",
+    "version": "1.0",
+    "icon": "./assets/icons/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "scheme": "margherita-admin-debug",
+    "scheme": "margherita-admin",
     "platforms": [
       "ios",
       "android",
       "web"
     ],
     "android": {
-      "package": "uk.margheritapizzeria.admin.debug"
+      "package": "uk.margheritapizzeria.admin",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "ios": {
-      "bundleIdentifier": "uk.margheritapizzeria.admin.debug",
-      "supportsTablet": true
+      "bundleIdentifier": "uk.margheritapizzeria.admin",
+      "icon": "./assets/icons/icon.png",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Staff can take restaurant, menu and website photos for Margherita Pizzeria.",
+        "NSPhotoLibraryUsageDescription": "Staff can choose restaurant, menu and website photos for Margherita Pizzeria."
+      },
+      "buildNumber": "20"
     },
     "web": {
       "bundler": "metro"
     },
     "extra": {
-      "MARGHERITA_BASE_URL_LAN": "http://192.168.1.161:3000",
-      "MARGHERITA_BASE_URL_EMULATOR": "http://10.0.2.2:3000",
-      "MARGHERITA_BASE_URL_WEB": "http://localhost:3000",
+      "MARGHERITA_PROD_URL": "https://www.margheritapizza.uk",
       "eas": {
         "projectId": "906a4b60-7821-4e06-97ee-dd9a1f0ac174"
       }
-    }
+    },
+    "plugins": [
+      "expo-audio",
+      "expo-font",
+      "expo-asset",
+      "expo-sharing"
+    ]
   }
 }

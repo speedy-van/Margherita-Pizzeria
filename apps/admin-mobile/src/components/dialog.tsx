@@ -40,6 +40,7 @@ import {
 } from "react-native";
 
 import { palette, shadow } from "@/format";
+import { playPopupSound } from "@/hooks/alerts";
 
 export type DialogTone = "info" | "success" | "warning" | "danger";
 
@@ -85,6 +86,8 @@ type CommonOptions = {
   title: string;
   message?: string;
   tone?: DialogTone;
+  /** When true (default), play the generic popup tone when shown. */
+  playSound?: boolean;
   /** Fires exactly once when this dialog leaves the screen (any path). */
   onClose?: () => void;
   /** When false, backdrop tap and Android back are ignored. Default: true. */
@@ -176,6 +179,9 @@ export function DialogProvider({ children }: { children: ReactNode }): JSX.Eleme
   // Replay scale/fade-in each time a new dialog becomes current.
   useEffect(() => {
     if (!current) return;
+    if (current.opts.playSound !== false) {
+      playPopupSound();
+    }
     scale.setValue(0.88);
     opacity.setValue(0);
     Animated.parallel([

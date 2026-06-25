@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useRef } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -9,7 +9,7 @@ import {
   ViewStyle,
 } from "react-native";
 
-import { palette, shadow } from "@/format";
+import { buttonNeon, palette, shadow } from "@/format";
 
 type ButtonProps = {
   label: string;
@@ -18,6 +18,7 @@ type ButtonProps = {
   busy?: boolean;
   icon?: string;
   style?: ViewStyle;
+  accessibilityLabel?: string;
 };
 
 export function PrimaryButton({
@@ -27,11 +28,24 @@ export function PrimaryButton({
   busy,
   icon,
   style,
+  accessibilityLabel,
 }: ButtonProps): JSX.Element {
+  const pressLocked = useRef(false);
+  const handlePress = (): void => {
+    if (pressLocked.current || disabled || busy) return;
+    pressLocked.current = true;
+    onPress();
+    setTimeout(() => {
+      pressLocked.current = false;
+    }, 700);
+  };
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || busy}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
       style={({ pressed }) => [
         controlStyles.primary,
         (disabled || busy) && controlStyles.disabled,
@@ -44,7 +58,9 @@ export function PrimaryButton({
       ) : (
         <View style={controlStyles.row}>
           {icon ? <Text style={controlStyles.primaryIcon}>{icon}</Text> : null}
-          <Text style={controlStyles.primaryText}>{label}</Text>
+          <Text style={controlStyles.primaryText} numberOfLines={2}>
+            {label}
+          </Text>
         </View>
       )}
     </Pressable>
@@ -58,18 +74,31 @@ export function SecondaryButton({
   busy,
   icon,
   style,
+  accessibilityLabel,
   tone = "default",
 }: ButtonProps & { tone?: "default" | "danger" | "success" }): JSX.Element {
+  const pressLocked = useRef(false);
   const color =
     tone === "danger"
       ? palette.danger
       : tone === "success"
         ? palette.success
         : palette.text;
+  const handlePress = (): void => {
+    if (pressLocked.current || disabled || busy) return;
+    pressLocked.current = true;
+    onPress();
+    setTimeout(() => {
+      pressLocked.current = false;
+    }, 700);
+  };
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || busy}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
       style={({ pressed }) => [
         controlStyles.secondary,
         (disabled || busy) && controlStyles.disabled,
@@ -84,7 +113,9 @@ export function SecondaryButton({
           {icon ? (
             <Text style={[controlStyles.secondaryIcon, { color }]}>{icon}</Text>
           ) : null}
-          <Text style={[controlStyles.secondaryText, { color }]}>{label}</Text>
+          <Text style={[controlStyles.secondaryText, { color }]} numberOfLines={2}>
+            {label}
+          </Text>
         </View>
       )}
     </Pressable>
@@ -200,34 +231,52 @@ export function ErrorView({
 }
 
 const controlStyles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 8 },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    maxWidth: "100%",
+    minWidth: 0,
+  },
   primary: {
     backgroundColor: palette.primary,
     paddingVertical: 14,
     paddingHorizontal: 18,
+    minHeight: 48,
     borderRadius: 10,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
     ...shadow,
+    ...buttonNeon,
   },
   primaryText: {
     color: palette.primaryText,
     fontWeight: "700",
     fontSize: 16,
     letterSpacing: 0.3,
+    flexShrink: 1,
+    textAlign: "center",
   },
   primaryIcon: { color: palette.primaryText, fontSize: 16 },
   secondary: {
     backgroundColor: palette.surface,
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 16,
+    minHeight: 44,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: palette.border,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
+    ...buttonNeon,
   },
-  secondaryText: { fontWeight: "600", fontSize: 14 },
+  secondaryText: {
+    fontWeight: "600",
+    fontSize: 14,
+    flexShrink: 1,
+    textAlign: "center",
+  },
   secondaryIcon: { fontSize: 14 },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.75 },
@@ -246,12 +295,13 @@ const contactStyles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    minHeight: 44,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: palette.border,
+    borderWidth: 1.5,
     backgroundColor: palette.surface,
     marginRight: 6,
     marginBottom: 6,
+    ...buttonNeon,
   },
   icon: { fontSize: 14 },
   label: { color: palette.text, fontWeight: "600", fontSize: 12 },

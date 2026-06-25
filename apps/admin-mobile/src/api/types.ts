@@ -67,6 +67,7 @@ export type AdminOrderListItem = {
   totalPence: number;
   paymentMethod: PaymentMethod;
   itemCount: number;
+  items: OrderItemSnapshot[];
   createdAt: string;
   updatedAt: string;
 };
@@ -88,6 +89,76 @@ export type AdminOrderDetail = AdminOrderListItem & {
   discountCode: string | null;
   items: OrderItemSnapshot[];
   estimatedTime: string | null;
+};
+
+export type InvoiceStatusTone =
+  | "paid"
+  | "unpaid"
+  | "delivered"
+  | "cancelled"
+  | "in_progress";
+
+export type InvoiceStatusModel = {
+  label: string;
+  tone: InvoiceStatusTone;
+};
+
+export type InvoiceItemModel = {
+  lineId: string;
+  name: string;
+  quantity: number;
+  unitPricePence: number;
+  rowTotalPence: number;
+  unitPrice: string;
+  rowTotal: string;
+};
+
+export type InvoiceTotalLineModel = {
+  key: "subtotal" | "delivery" | "discount" | "total";
+  label: string;
+  amountPence: number;
+  value: string;
+};
+
+export type InvoiceDocumentModel = {
+  id: string;
+  invoiceNumber: string;
+  fileName: string;
+  orderReference: string;
+  issueDate: string;
+  issuedAt: string;
+  fulfilmentType: string;
+  paymentMethod: string;
+  paymentStatus: InvoiceStatusModel;
+  orderStatus: InvoiceStatusModel;
+  business: {
+    name: string;
+    shortName: string;
+    email: string;
+    phone: string;
+    address: string;
+    url: string;
+    logoUrl: string;
+  };
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string | null;
+  };
+  items: InvoiceItemModel[];
+  subtotal: InvoiceTotalLineModel;
+  deliveryFee: InvoiceTotalLineModel;
+  discount: InvoiceTotalLineModel | null;
+  total: InvoiceTotalLineModel;
+  footerMessage: string;
+};
+
+export type SendInvoiceEmailResponse = {
+  invoiceNumber: string;
+  toEmail: string;
+  id: string | null;
+  skipped: boolean;
 };
 
 export type AdminBookingListItem = {
@@ -162,10 +233,15 @@ export const WEEKDAYS = [
 ] as const;
 
 export type AdminSettings = {
+  acceptingOnlineOrders: boolean;
+  collectionOpen: boolean;
+  deliveryOpen: boolean;
+  busyMode: "normal" | "busy" | "very_busy";
   minDeliveryOrderPence: number;
   deliveryFeePence: number;
   prepTimeMinutes: number;
   deliveryTimeMinutes: number;
+  customerMessage: string;
   depositEnabled: boolean;
   depositAmountPence: number;
   openingHours: OpeningHours;

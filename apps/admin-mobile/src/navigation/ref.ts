@@ -14,7 +14,6 @@ import {
 // bottom-tab navigator, not the MainStack directly. We use string-based
 // nested navigation for cross-tab jumps, which is well-supported by RN.
 // Strong typing is enforced at each screen's own useRoute / useNavigation.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const navigationRef = createNavigationContainerRef<any>();
 
 function jumpToTab(tabName: string, screen: string, params: object): void {

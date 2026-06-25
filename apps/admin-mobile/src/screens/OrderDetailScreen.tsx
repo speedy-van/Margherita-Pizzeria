@@ -1,60 +1,68 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import {
   ActivityIndicator,
-  Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
 import { apiCall } from "@/api/client";
+import type { AdminOrderDetail, OrderItemSnapshot, OrderStatus } from "@/api/types";
 import { useApiGet } from "@/api/useApiGet";
-import {
-  ADMIN_ORDER_STATUSES,
-  type AdminOrderDetail,
-  type OrderStatus,
-} from "@/api/types";
 import { Banner, ContactActions, PrimaryButton, SecondaryButton } from "@/components/controls";
 import { useDialog } from "@/components/dialog";
-import { Card, StatusBadge } from "@/components/ui";
+import { ScreenLayout } from "@/components/ScreenLayout";
+import { Card, EmptyState, StatusBadge } from "@/components/ui";
+import { formatDateTime, palette } from "@/format";
 import { useBadges } from "@/hooks/useBadges";
-import { formatRelative, formatMoney, palette } from "@/format";
+import {
+  canTransitionOrderStatus,
+  formatCurrencyGBP,
+  formatOrderAge,
+  getNextOrderActions,
+  inferPaymentStatus,
+  isCompletedOrder,
+  isLateOrder,
+  isTestOrderHeuristic,
+  ORDER_STATUS_LABELS,
+} from "@/lib/order-operations";
+import {
+  downloadInvoicePdf,
+  getInvoiceDocument,
+  invoiceActionErrorMessage,
+  isInvoiceUserCancel,
+  sendInvoiceEmail,
+} from "@/lib/invoice-documents";
+import {
+  printCustomerReceipt,
+  printKitchenTicket,
+} from "@/lib/order-printing";
 import type { MainStackParamList } from "@/navigation/types";
 
 type Props = NativeStackScreenProps<MainStackParamList, "OrderDetail">;
+type DetailAction =
+  | "kitchen"
+  | "receipt"
+  | "email_invoice"
+  | "share_invoice"
+  | "print_invoice"
+  | null;
 
-/** Natural forward-flow next status for an order. */
-function nextStatus(current: OrderStatus, type: "delivery" | "collection"): OrderStatus | null {
-  switch (current) {
-    case "pending_payment":
-      return "received";
-    case "received":
-      return "making";
-    case "making":
-      return "ready";
-    case "ready":
-      return type === "delivery" ? "out_for_delivery" : "delivered";
-    case "out_for_delivery":
-      return "delivered";
-    default:
-      return null;
-  }
-}
-
-function statusLabel(s: OrderStatus): string {
-  return s.replace(/_/g, " ");
-}
-
-export function OrderDetailScreen({ route, navigation }: Props): JSX.Element {
+export function OrderDetailScreen({ route }: Props): JSX.Element {
   const { id } = route.params;
   const { data, error, loading, reload } = useApiGet<AdminOrderDetail>(
     `/api/admin/orders/${id}`,
     [id],
   );
   const [saving, setSaving] = useState<OrderStatus | null>(null);
+  const [action, setAction] = useState<DetailAction>(null);
+  const savingRef = useRef<OrderStatus | null>(null);
+  const actionRef = useRef<DetailAction>(null);
   const { refresh: refreshBadges } = useBadges();
   const dialog = useDialog();
 
@@ -65,105 +73,280 @@ export function OrderDetailScreen({ route, navigation }: Props): JSX.Element {
   );
 
   const updateStatus = async (next: OrderStatus): Promise<void> => {
-    setSaving(next);
-    const res = await apiCall({
-      method: "POST",
-      path: `/api/admin/orders/${id}/status`,
-      body: { status: next },
-    });
-    setSaving(null);
-    if (!res.ok) {
-      void dialog.alert({
-        title: "Couldn't update status",
-        message: res.message,
-        tone: "danger",
+    if (!data || savingRef.current) return;
+    if (!canTransitionOrderStatus(data.status, next)) {
+      await dialog.alert({
+        title: "Status not available",
+        message: `This order cannot move from ${ORDER_STATUS_LABELS[data.status]} to ${ORDER_STATUS_LABELS[next]}.`,
+        tone: "warning",
       });
       return;
     }
-    await reload();
-    void refreshBadges();
+    savingRef.current = next;
+    setSaving(next);
+    try {
+      const res = await apiCall<AdminOrderDetail>({
+        method: "POST",
+        path: `/api/admin/orders/${id}/status`,
+        body: { status: next },
+      });
+      if (!res.ok) {
+        await dialog.alert({
+          title: "Couldn't update status",
+          message: res.message,
+          tone: "danger",
+        });
+        return;
+      }
+      await reload();
+      void refreshBadges();
+      await dialog.alert({
+        title: "Status updated",
+        message: `Order marked ${ORDER_STATUS_LABELS[next].toLowerCase()}.`,
+        tone: "success",
+        playSound: false,
+      });
+    } finally {
+      savingRef.current = null;
+      setSaving(null);
+    }
   };
 
-  const confirmAndUpdate = async (
-    next: OrderStatus,
-    verb: string,
-  ): Promise<void> => {
-    const destructive = next === "cancelled" || next === "rejected";
+  const confirmAndUpdate = async (next: OrderStatus): Promise<void> => {
     const ok = await dialog.confirm({
-      title: `${verb} this order?`,
-      confirmLabel: verb,
-      destructive,
+      title:
+        next === "cancelled"
+          ? "Cancel this order?"
+          : next === "rejected"
+            ? "Reject this order?"
+            : `Mark ${ORDER_STATUS_LABELS[next].toLowerCase()}?`,
+      message:
+        next === "cancelled" || next === "rejected"
+          ? "No cancel reason will be saved in this pass."
+          : undefined,
+      confirmLabel:
+        next === "cancelled"
+          ? "Cancel order"
+          : next === "rejected"
+            ? "Reject order"
+            : "Confirm",
+      cancelLabel: "Go back",
+      destructive: next === "cancelled" || next === "rejected",
     });
-    if (ok) void updateStatus(next);
+    if (ok) await updateStatus(next);
+  };
+
+  const runAction = async (
+    nextAction: Exclude<DetailAction, null>,
+    handler: () => Promise<void>,
+  ): Promise<void> => {
+    if (actionRef.current) return;
+    actionRef.current = nextAction;
+    setAction(nextAction);
+    try {
+      await handler();
+    } catch (err: unknown) {
+      if (!isInvoiceUserCancel(err)) {
+        await dialog.alert({
+          title: "Action failed",
+          message: invoiceActionErrorMessage(err),
+          tone: "danger",
+        });
+      }
+    } finally {
+      actionRef.current = null;
+      setAction(null);
+    }
+  };
+
+  const printKitchen = async (): Promise<void> => {
+    if (!data) return;
+    await runAction("kitchen", () => printKitchenTicket(data));
+  };
+
+  const printReceipt = async (): Promise<void> => {
+    if (!data) return;
+    await runAction("receipt", async () => {
+      let invoice = null;
+      try {
+        invoice = await getInvoiceDocument(data.id);
+      } catch {
+        invoice = null;
+      }
+      await printCustomerReceipt({ order: data, invoice });
+    });
+  };
+
+  const emailInvoice = async (): Promise<void> => {
+    if (!data) return;
+    const email = data.customerEmail.trim();
+    if (!email) {
+      await dialog.alert({
+        title: "Missing email",
+        message: "This order does not have a customer email address.",
+        tone: "warning",
+      });
+      return;
+    }
+    await runAction("email_invoice", async () => {
+      const result = await sendInvoiceEmail({
+        invoiceId: data.id,
+        email,
+        defaultEmail: data.customerEmail,
+      });
+      await dialog.alert({
+        title: "Invoice sent",
+        message: result.skipped
+          ? "Invoice email was prepared in demo mode."
+          : `Invoice sent to ${result.toEmail}.`,
+        tone: "success",
+      });
+    });
+  };
+
+  const shareInvoice = async (): Promise<void> => {
+    if (!data) return;
+    await runAction("share_invoice", async () => {
+      const available = await Sharing.isAvailableAsync();
+      if (!available) throw new Error("Sharing is not available on this device.");
+      const invoice = await getInvoiceDocument(data.id);
+      const pdf = await downloadInvoicePdf({
+        invoiceId: invoice.id,
+        fileName: invoice.fileName,
+      });
+      await Sharing.shareAsync(pdf.uri, {
+        mimeType: "application/pdf",
+        UTI: "com.adobe.pdf",
+        dialogTitle: invoice.invoiceNumber,
+      });
+    });
+  };
+
+  const printInvoice = async (): Promise<void> => {
+    if (!data) return;
+    await runAction("print_invoice", async () => {
+      const invoice = await getInvoiceDocument(data.id);
+      const pdf = await downloadInvoicePdf({
+        invoiceId: invoice.id,
+        fileName: invoice.fileName,
+      });
+      await Print.printAsync({ uri: pdf.uri });
+    });
   };
 
   if (loading && !data) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={palette.primary} />
-      </View>
+      <ScreenLayout scroll={false}>
+        <View style={styles.center}>
+          <ActivityIndicator color={palette.primary} />
+        </View>
+      </ScreenLayout>
     );
   }
+
+  if (!data && error) {
+    return (
+      <ScreenLayout>
+        <Banner tone="danger">{error}</Banner>
+        <SecondaryButton
+          label="Try again"
+          onPress={() => void reload()}
+          style={styles.retryButton}
+        />
+      </ScreenLayout>
+    );
+  }
+
   if (!data) {
     return (
-      <View style={styles.center}>
-        <Text style={{ color: palette.dangerFg }}>{error ?? "Not found"}</Text>
-      </View>
+      <ScreenLayout>
+        <EmptyState message="Order not found" />
+        <SecondaryButton
+          label="Reload"
+          onPress={() => void reload()}
+          style={styles.retryButton}
+        />
+      </ScreenLayout>
     );
   }
 
-  const next = nextStatus(data.status, data.type);
-  const isTerminal =
-    data.status === "delivered" ||
-    data.status === "cancelled" ||
-    data.status === "rejected";
+  const payment = inferPaymentStatus(data);
+  const actions = getNextOrderActions(data);
+  const isTerminal = isCompletedOrder(data);
+  const late = isLateOrder(data);
+  const test = isTestOrderHeuristic(data);
+  const busy = saving !== null || action !== null;
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
-      <Card style={{ marginBottom: 12 }}>
+    <ScreenLayout
+      refreshing={loading}
+      onRefresh={() => void reload()}
+      keyboardShouldPersistTaps="handled"
+    >
+      {error ? <Banner tone="danger">{error}</Banner> : null}
+      {late ? <Banner tone="warning">This order is running late.</Banner> : null}
+      {test ? (
+        <Banner tone="warning">
+          Possible test order. Treat this as a warning only.
+        </Banner>
+      ) : null}
+
+      <Card style={styles.card}>
         <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.ref}>
-              {data.reference ?? data.id.slice(0, 8)}
-            </Text>
+          <View style={styles.flexText}>
+            <Text style={styles.ref}>{data.reference ?? data.id.slice(0, 8)}</Text>
             <Text style={styles.muted}>
-              {formatRelative(data.createdAt)} · {data.type}
+              {data.type} · {formatOrderAge(data.createdAt)} ·{" "}
+              {formatDateTime(data.createdAt)}
             </Text>
           </View>
           <StatusBadge status={data.status} />
         </View>
-        <Text style={styles.payment}>
-          {data.paymentMethod === "stripe_card" ? "💳 Paid by card" : "💵 Cash on delivery"}
-        </Text>
-        {data.estimatedTime ? (
-          <Text style={styles.muted}>ETA: {data.estimatedTime}</Text>
-        ) : null}
+        <View style={styles.badgeLine}>
+          <PaymentPill label={payment.label} tone={payment.tone} />
+          {data.estimatedTime ? (
+            <View style={styles.softPill}>
+              <Text style={styles.softPillText}>{data.estimatedTime}</Text>
+            </View>
+          ) : null}
+        </View>
       </Card>
-
-      {!isTerminal && next ? (
-        <PrimaryButton
-          label={`Advance to ${statusLabel(next)}`}
-          icon="➡️"
-          busy={saving === next}
-          onPress={() => void updateStatus(next)}
-          style={{ marginBottom: 12 }}
-        />
-      ) : null}
 
       {isTerminal ? (
         <Banner tone={data.status === "delivered" ? "success" : "warning"}>
-          This order is {statusLabel(data.status)}.
+          This order is {ORDER_STATUS_LABELS[data.status].toLowerCase()}.
         </Banner>
       ) : null}
 
-      <Card style={{ marginBottom: 12 }}>
+      {actions.length > 0 ? (
+        <Card style={styles.card}>
+          <Text style={styles.section}>Status actions</Text>
+          <View style={styles.actionGrid}>
+            {actions.map((item) => (
+              <SecondaryButton
+                key={item.status}
+                label={item.label}
+                busy={saving === item.status}
+                disabled={busy && saving !== item.status}
+                tone={item.tone === "danger" ? "danger" : item.tone === "success" ? "success" : "default"}
+                onPress={() =>
+                  item.requiresConfirmation
+                    ? void confirmAndUpdate(item.status)
+                    : void updateStatus(item.status)
+                }
+                style={styles.actionButton}
+              />
+            ))}
+          </View>
+        </Card>
+      ) : null}
+
+      <Card style={styles.card}>
         <Text style={styles.section}>Customer</Text>
-        <Text style={styles.name}>{data.customerName}</Text>
-        <Text style={styles.muted}>{data.customerPhone}</Text>
-        <Text style={styles.muted}>{data.customerEmail}</Text>
-        {data.address ? (
-          <Text style={[styles.muted, { marginTop: 6 }]}>{data.address}</Text>
-        ) : null}
+        <Text style={styles.name}>{data.customerName || "Customer"}</Text>
+        <InfoLine icon="call-outline" value={data.customerPhone} />
+        <InfoLine icon="mail-outline" value={data.customerEmail} />
+        {data.address ? <InfoLine icon="location-outline" value={data.address} /> : null}
         <ContactActions
           phone={data.customerPhone}
           email={data.customerEmail}
@@ -171,133 +354,272 @@ export function OrderDetailScreen({ route, navigation }: Props): JSX.Element {
         />
       </Card>
 
-      <Card style={{ marginBottom: 12 }}>
+      <Card style={styles.card}>
         <Text style={styles.section}>Items</Text>
-        {data.items.map((item, i) => (
-          <View
-            key={`${item.menuItemId}-${i}`}
-            style={[styles.itemRow, i > 0 && styles.itemRowBorder]}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.itemName}>
-                {item.quantity}× {item.name}
-              </Text>
-              {item.allergens.length > 0 ? (
-                <Text style={styles.allergens}>
-                  ⚠️ {item.allergens.join(", ")}
-                </Text>
-              ) : null}
-            </View>
-            <Text style={styles.itemPrice}>
-              {formatMoney(item.totalPence)}
-            </Text>
-          </View>
-        ))}
+        {data.items.length === 0 ? (
+          <Text style={styles.muted}>No items on this order.</Text>
+        ) : (
+          data.items.map((item, index) => (
+            <OrderItemRow
+              key={`${item.menuItemId}-${index}`}
+              item={item}
+              showBorder={index > 0}
+            />
+          ))
+        )}
       </Card>
 
-      <Card style={{ marginBottom: 12 }}>
-        <Row label="Subtotal" value={formatMoney(data.subtotalPence)} />
-        <Row label="Delivery" value={formatMoney(data.deliveryFeePence)} />
+      <Card style={styles.card}>
+        <Text style={styles.section}>Totals</Text>
+        <MoneyRow label="Subtotal" value={formatCurrencyGBP(data.subtotalPence)} />
+        <MoneyRow label="Delivery" value={formatCurrencyGBP(data.deliveryFeePence)} />
         {data.discountPence > 0 ? (
-          <Row
+          <MoneyRow
             label={`Discount${data.discountCode ? ` (${data.discountCode})` : ""}`}
-            value={`-${formatMoney(data.discountPence)}`}
+            value={`-${formatCurrencyGBP(data.discountPence)}`}
           />
         ) : null}
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{formatMoney(data.totalPence)}</Text>
+          <Text style={styles.totalValue}>{formatCurrencyGBP(data.totalPence)}</Text>
         </View>
       </Card>
 
-      {!isTerminal ? (
-        <Card>
-          <Text style={styles.section}>Other actions</Text>
-          <View style={styles.actionsCol}>
-            {ADMIN_ORDER_STATUSES.filter(
-              (s) => s !== data.status && s !== next,
-            ).map((s) => {
-              const isDanger = s === "cancelled" || s === "rejected";
-              return (
-                <SecondaryButton
-                  key={s}
-                  label={`Mark as ${statusLabel(s)}`}
-                  busy={saving === s}
-                  tone={isDanger ? "danger" : "default"}
-                  onPress={() =>
-                    isDanger
-                      ? confirmAndUpdate(s, s === "cancelled" ? "Cancel" : "Reject")
-                      : void updateStatus(s)
-                  }
-                  style={{ marginBottom: 8 }}
-                />
-              );
-            })}
-          </View>
-        </Card>
-      ) : null}
-
-      <View style={{ height: 32 }} />
-    </ScrollView>
+      <Card style={styles.card}>
+        <Text style={styles.section}>Print and invoice</Text>
+        <View style={styles.actionGrid}>
+          <SecondaryButton
+            label="Print kitchen ticket"
+            busy={action === "kitchen"}
+            disabled={busy && action !== "kitchen"}
+            onPress={() => void printKitchen()}
+            style={styles.actionButton}
+          />
+          <SecondaryButton
+            label="Print customer receipt"
+            busy={action === "receipt"}
+            disabled={busy && action !== "receipt"}
+            onPress={() => void printReceipt()}
+            style={styles.actionButton}
+          />
+          <PrimaryButton
+            label="Email invoice"
+            busy={action === "email_invoice"}
+            disabled={busy && action !== "email_invoice"}
+            onPress={() => void emailInvoice()}
+            style={styles.actionButton}
+          />
+          <SecondaryButton
+            label="Share invoice PDF"
+            busy={action === "share_invoice"}
+            disabled={busy && action !== "share_invoice"}
+            onPress={() => void shareInvoice()}
+            style={styles.actionButton}
+          />
+          <SecondaryButton
+            label="Print invoice PDF"
+            busy={action === "print_invoice"}
+            disabled={busy && action !== "print_invoice"}
+            onPress={() => void printInvoice()}
+            style={styles.actionButton}
+          />
+        </View>
+      </Card>
+    </ScreenLayout>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }): JSX.Element {
+function PaymentPill({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "paid" | "unpaid" | "cash" | "unknown";
+}): JSX.Element {
+  const colors =
+    tone === "paid"
+      ? { bg: palette.successBg, fg: palette.success }
+      : tone === "cash"
+        ? { bg: palette.infoBg, fg: palette.info }
+        : tone === "unpaid"
+          ? { bg: palette.warningBg, fg: palette.warning }
+          : { bg: palette.surfaceAlt, fg: palette.textMuted };
   return (
-    <View style={styles.kvRow}>
+    <View style={[styles.paymentPill, { backgroundColor: colors.bg }]}>
+      <Text style={[styles.paymentText, { color: colors.fg }]}>{label}</Text>
+    </View>
+  );
+}
+
+function InfoLine({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value: string }): JSX.Element {
+  return (
+    <View style={styles.infoLine}>
+      <Ionicons name={icon} size={15} color={palette.textMuted} />
+      <Text style={styles.muted} selectable>
+        {value || "-"}
+      </Text>
+    </View>
+  );
+}
+
+function itemMetaLines(item: OrderItemSnapshot): string[] {
+  const raw = item as unknown as Record<string, unknown>;
+  const out: string[] = [];
+  const notes = raw.notes ?? raw.note;
+  if (typeof notes === "string" && notes.trim()) out.push(`Note: ${notes.trim()}`);
+  for (const key of ["modifiers", "options"]) {
+    const value = raw[key];
+    if (typeof value === "string" && value.trim()) {
+      out.push(value.trim());
+    } else if (Array.isArray(value)) {
+      const entries = value
+        .map((entry) => {
+          if (typeof entry === "string") return entry;
+          if (entry && typeof entry === "object" && "name" in entry) {
+            return String((entry as { name?: unknown }).name ?? "");
+          }
+          return "";
+        })
+        .filter(Boolean);
+      if (entries.length > 0) out.push(entries.join(", "));
+    }
+  }
+  return out;
+}
+
+function OrderItemRow({
+  item,
+  showBorder,
+}: {
+  item: OrderItemSnapshot;
+  showBorder: boolean;
+}): JSX.Element {
+  const meta = itemMetaLines(item);
+  return (
+    <View style={[styles.itemRow, showBorder && styles.itemRowBorder]}>
+      <View style={styles.flexText}>
+        <Text style={styles.itemName}>
+          {item.quantity} x {item.name}
+        </Text>
+        {meta.map((line) => (
+          <Text key={line} style={styles.itemMeta}>
+            {line}
+          </Text>
+        ))}
+        {item.allergens.length > 0 ? (
+          <Text style={styles.allergens}>{item.allergens.join(", ")}</Text>
+        ) : null}
+      </View>
+      <Text style={styles.itemPrice}>{formatCurrencyGBP(item.totalPence)}</Text>
+    </View>
+  );
+}
+
+function MoneyRow({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <View style={styles.moneyRow}>
       <Text style={styles.muted}>{label}</Text>
-      <Text style={styles.kv}>{value}</Text>
+      <Text style={styles.moneyValue}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { backgroundColor: palette.bg },
-  container: { padding: 12 },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: palette.bg,
   },
+  retryButton: { alignSelf: "flex-start", marginTop: 12 },
+  card: { marginBottom: 12 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 8,
+    gap: 12,
   },
-  ref: { fontSize: 20, fontWeight: "800", color: palette.text },
-  muted: { color: palette.textMuted, fontSize: 13 },
-  name: { color: palette.text, fontWeight: "600", fontSize: 15 },
-  payment: { color: palette.text, marginTop: 6, fontWeight: "500" },
+  flexText: { flex: 1, minWidth: 0 },
+  ref: { fontSize: 21, fontWeight: "900", color: palette.text },
+  muted: { color: palette.textMuted, fontSize: 13, lineHeight: 19 },
+  badgeLine: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  paymentPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  paymentText: { fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
+  softPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: palette.surfaceAlt,
+  },
+  softPillText: { color: palette.textMuted, fontSize: 11, fontWeight: "800" },
   section: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "900",
     color: palette.textMuted,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0,
     marginBottom: 10,
   },
-  kv: { color: palette.text, fontWeight: "500" },
-  kvRow: {
+  actionGrid: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 4,
+    flexWrap: "wrap",
+    gap: 10,
   },
-  itemRow: { flexDirection: "row", paddingVertical: 10 },
+  actionButton: {
+    flexGrow: 1,
+    flexBasis: "46%",
+    minWidth: 142,
+  },
+  name: { color: palette.text, fontWeight: "800", fontSize: 16, marginBottom: 8 },
+  infoLine: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginTop: 4,
+  },
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    paddingVertical: 11,
+  },
   itemRowBorder: { borderTopWidth: 1, borderTopColor: palette.border },
-  itemName: { color: palette.text, fontWeight: "500", fontSize: 15 },
-  itemPrice: { color: palette.text, fontWeight: "600" },
+  itemName: { color: palette.text, fontWeight: "800", fontSize: 15, lineHeight: 20 },
+  itemMeta: { color: palette.textMuted, fontSize: 12, marginTop: 2 },
+  itemPrice: {
+    color: palette.text,
+    fontWeight: "800",
+    minWidth: 76,
+    textAlign: "right",
+  },
   allergens: { color: palette.warning, fontSize: 12, marginTop: 2 },
+  moneyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+    gap: 12,
+  },
+  moneyValue: { color: palette.text, fontWeight: "800", textAlign: "right" },
   totalRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 10,
-    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: palette.border,
+    paddingTop: 12,
+    marginTop: 8,
+    gap: 12,
   },
-  totalLabel: { fontWeight: "800", color: palette.text, fontSize: 17 },
-  totalValue: { fontWeight: "800", color: palette.text, fontSize: 17 },
-  actionsCol: { gap: 0 },
+  totalLabel: { color: palette.text, fontWeight: "900", fontSize: 17 },
+  totalValue: {
+    color: palette.primary,
+    fontWeight: "900",
+    fontSize: 18,
+    textAlign: "right",
+  },
 });

@@ -1,0 +1,76 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.0",
+    "copyright": "2026 Margherita Pizzeria",
+    "release": {
+      "automaticRelease": true
+    },
+    "info": {
+      "en-GB": {
+        "description": "Margherita Admin is a staff-only operations app for Margherita Pizzeria. Authorised team members can monitor live orders and bookings, review customer and payment status details, update order and booking progress, manage menu availability, edit operational settings, upload restaurant images, manage discounts, and switch between English and Arabic.\n\nThe app is not a customer ordering app and does not take public orders directly. Customer ordering and card payment are handled through the restaurant website; this app displays operational status so staff can prepare and manage service.",
+        "keywords": [
+          "restaurant",
+          "orders",
+          "bookings",
+          "menu",
+          "staff",
+          "delivery",
+          "pizzeria",
+          "admin",
+          "Glasgow"
+        ],
+        "marketingUrl": "https://www.margheritapizza.uk",
+        "promoText": "Staff-only dashboard for live orders, bookings, menu availability and restaurant operations.",
+        "supportUrl": "https://www.margheritapizza.uk/contact",
+        "title": "Margherita Admin",
+        "subtitle": "Restaurant staff dashboard",
+        "privacyPolicyUrl": "https://www.margheritapizza.uk/privacy",
+        "releaseNotes": "Hotfix build with cleaner staff sign-in layout, fixed dashboard attention cards, fixed duplicated dashboard labels, Apple Review demo popup alert, verified app icon configuration, Arabic interface support, privacy links, and safer production API configuration."
+      }
+    },
+    "categories": [
+      "BUSINESS",
+      "FOOD_AND_DRINK"
+    ],
+    "advisory": {
+      "ageRatingOverride": "NONE",
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gambling": false,
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "kidsAgeBand": null,
+      "koreaAgeRatingOverride": "NONE",
+      "lootBox": false,
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "unrestrictedWebAccess": false,
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "advertising": false,
+      "ageAssurance": false,
+      "ageRatingOverrideV2": "NONE",
+      "developerAgeRatingInfoUrl": null,
+      "gunsOrOtherWeapons": "NONE",
+      "healthOrWellnessTopics": false,
+      "messagingAndChat": false,
+      "parentalControls": false,
+      "userGeneratedContent": false
+    },
+    "review": {
+      "firstName": "Ahmad",
+      "lastName": "Awad Alwakai",
+      "email": "hello@margheritapizzeria.co.uk",
+      "phone": "+447746870341",
+      "demoUsername": "review@margheritapizza.uk",
+      "demoPassword": "AppleReview2026!",
+      "demoRequired": true,
+      "notes": "Margherita Admin is a staff-only app for managing restaurant operations. It is not a public customer ordering app. The demo account opens a local review mode with sample orders, bookings, menu items, settings, images and discounts. It does not create real customer orders, does not process payment, and does not change production restaurant data.\n\nSuggested review flow:\n1. Sign in with the demo account.\n2. Open Dashboard to see sample live order and booking cards.\n3. Open Orders, select DEMO-1001, and change the order status. This is local demo data only.\n4. Open Bookings, select BOOK-2001, and change the booking status. This is local demo data only.\n5. Open More > Menu/Settings/Images/Discounts to review staff management screens.\n6. Open More and switch the language toggle to view the Arabic interface.\n7. Open More > Privacy Policy and Support to verify the required external links.\n\nPayments: the admin app does not take customer payment. It only displays operational payment status such as card paid, cash on collection, deposit paid, unpaid or refunded when available.\n\nNotifications and media permissions are optional for the review flow. The app remains usable if notification, camera or photo access is denied.\n\nAccount deletion: this app is for authorised staff only and does not allow public account creation inside the app. Staff accounts are managed by the restaurant. If a staff account must be removed, contact support using the Support link in the app."
+    }
+  }
+}

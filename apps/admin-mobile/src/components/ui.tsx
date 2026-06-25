@@ -1,23 +1,39 @@
 import { ReactNode } from "react";
-import { StyleSheet, Text, View, ViewStyle } from "react-native";
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { palette, shadow, statusTone } from "@/format";
+import { useLanguage } from "@/i18n/LanguageContext";
+import {
+  ORDER_STATUS_COLORS,
+  ORDER_STATUSES,
+  ORDER_STATUS_LABELS,
+  type StatusTone,
+} from "@/lib/order-operations";
 
 export function Card({
   children,
   style,
 }: {
   children: ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }): JSX.Element {
   return <View style={[cardStyles.card, style]}>{children}</View>;
 }
 
 export function StatusBadge({ status }: { status: string }): JSX.Element {
-  const tone = statusTone(status);
+  const isOrderStatus = (ORDER_STATUSES as readonly string[]).includes(status);
+  const tone: StatusTone = isOrderStatus
+    ? ORDER_STATUS_COLORS[status as keyof typeof ORDER_STATUS_COLORS]
+    : statusTone(status);
+  const language = useLanguage();
+  const label = isOrderStatus
+    ? ORDER_STATUS_LABELS[status as keyof typeof ORDER_STATUS_LABELS]
+    : language.status(status);
   return (
     <View style={[badgeStyles.badge, { backgroundColor: tone.bg }]}>
-      <Text style={[badgeStyles.text, { color: tone.fg }]}>{tone.label}</Text>
+      <Text style={[badgeStyles.text, { color: tone.fg }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -26,12 +42,10 @@ export function StatCard({
   label,
   value,
   tone = "default",
-  icon,
 }: {
   label: string;
   value: string | number;
   tone?: "default" | "warn" | "good";
-  icon?: string;
 }): JSX.Element {
   const valueColor =
     tone === "warn"
@@ -41,10 +55,9 @@ export function StatCard({
         : palette.text;
   return (
     <View style={statStyles.card}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-        {icon ? <Text style={{ fontSize: 14 }}>{icon}</Text> : null}
-        <Text style={statStyles.label}>{label}</Text>
-      </View>
+      <Text style={statStyles.label} numberOfLines={2}>
+        {label}
+      </Text>
       <Text style={[statStyles.value, { color: valueColor }]}>{value}</Text>
     </View>
   );
@@ -88,13 +101,20 @@ const statStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.surface,
     borderRadius: 12,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: palette.border,
-    minWidth: 140,
+    minWidth: 0,
+    minHeight: 104,
+    justifyContent: "space-between",
     ...shadow,
   },
-  label: { color: palette.textMuted, fontSize: 12, marginBottom: 6 },
+  label: {
+    color: palette.textMuted,
+    fontSize: 12,
+    marginBottom: 8,
+    textAlign: "right",
+  },
   value: { fontSize: 24, fontWeight: "800" },
 });
 

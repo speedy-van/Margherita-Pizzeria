@@ -8,6 +8,7 @@
     "target": "esnext",
     "lib": ["esnext", "dom"],
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
     "noUncheckedIndexedAccess": true,
     "baseUrl": ".",
     "paths": {

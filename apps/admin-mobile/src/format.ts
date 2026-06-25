@@ -1,8 +1,13 @@
 // Shared formatting + style helpers.
 
+const gbpFormatter = new Intl.NumberFormat("en-GB", {
+  style: "currency",
+  currency: "GBP",
+});
+
 export function formatMoney(pence: number | undefined | null): string {
   const value = typeof pence === "number" ? pence : 0;
-  return `£${(value / 100).toFixed(2)}`;
+  return gbpFormatter.format(Math.trunc(value) / 100);
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
@@ -126,4 +131,13 @@ export const shadow = {
   shadowRadius: 8,
   shadowOffset: { width: 0, height: 2 },
   elevation: 2,
+} as const;
+
+export const buttonNeon = {
+  borderColor: "#ff2d2d",
+  shadowColor: "#ef4444",
+  shadowOpacity: 0.45,
+  shadowRadius: 11,
+  shadowOffset: { width: 0, height: 0 },
+  elevation: 6,
 } as const;

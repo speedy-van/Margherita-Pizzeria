@@ -18,7 +18,8 @@ import { Banner } from "@/components/controls";
 import { Card, EmptyState, StatusBadge } from "@/components/ui";
 import { useBadges } from "@/hooks/useBadges";
 import { usePolling } from "@/hooks/usePolling";
-import { formatRelative, palette } from "@/format";
+import { palette } from "@/format";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { MainStackParamList } from "@/navigation/types";
 
 type Props = NativeStackScreenProps<MainStackParamList, "BookingsHome">;
@@ -35,6 +36,7 @@ const FILTERS: Array<{ key: "all" | BookingStatus; label: string }> = [
 export function BookingsScreen({ navigation }: Props): JSX.Element {
   const [filter, setFilter] =
     useState<(typeof FILTERS)[number]["key"]>("pending");
+  const { relativeTime, t } = useLanguage();
   const { data, error, loading, reload } = useApiGet<AdminBookingListItem[]>(
     "/api/admin/bookings",
   );
@@ -113,7 +115,7 @@ export function BookingsScreen({ navigation }: Props): JSX.Element {
                   style={[styles.chipText, active && styles.chipTextActive]}
                   numberOfLines={1}
                 >
-                  {f.label}
+                  {t(f.label)}
                 </Text>
                 {n > 0 ? (
                   <View
@@ -154,7 +156,7 @@ export function BookingsScreen({ navigation }: Props): JSX.Element {
           contentContainerStyle={styles.list}
           stickySectionHeadersEnabled={false}
           ListEmptyComponent={
-            <EmptyState message="No bookings for this filter" />
+            <EmptyState message={t("No bookings for this filter")} />
           }
           renderSectionHeader={({ section }) => (
             <Text style={styles.sectionHeader}>{section.title}</Text>
@@ -175,13 +177,14 @@ export function BookingsScreen({ navigation }: Props): JSX.Element {
               <Card style={styles.card}>
                 <View style={styles.rowTop}>
                   <Text style={styles.title}>
-                    {item.timeSlot} · {item.covers} covers
+                    {item.timeSlot} · {item.covers}{" "}
+                    {t(item.covers === 1 ? "cover" : "covers")}
                   </Text>
                   <StatusBadge status={item.status} />
                 </View>
                 <Text style={styles.sub}>{item.customerName}</Text>
                 <Text style={styles.meta}>
-                  Booked {formatRelative(item.createdAt)}
+                  {t("Booked")} {relativeTime(item.createdAt)}
                 </Text>
               </Card>
             </Pressable>
