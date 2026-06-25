@@ -22,32 +22,44 @@ interface ApiErr {
 }
 type ApiResponse = ApiOk | ApiErr;
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const PRIVACY_SAFE_SUCCESS =
+  "If that email is registered, a password reset link is on its way. Check your inbox — including spam.";
+
 export function AdminForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!email.trim()) {
+    setError(null);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
       setError("Enter your email address.");
       return;
     }
+    if (!EMAIL_RE.test(trimmedEmail)) {
+      setError("Enter a valid email address.");
+      return;
+    }
     setBusy(true);
-    setError(null);
     try {
       const res = await fetch("/api/admin/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: trimmedEmail }),
       });
       const json = (await res.json()) as ApiResponse;
-      if (!json.ok) {
-        setError(json.error.message);
+      // Always show the privacy-safe success copy regardless of server response.
+      // The backend never reveals whether an account exists; we mirror that here.
+      if (!json.ok && json.error?.code === "INVALID_JSON") {
+        setError("Something went wrong. Please try again.");
         return;
       }
-      setDone(json.data.message);
+      setDone(true);
     } catch {
       setError("Network problem — please try again.");
     } finally {
@@ -71,13 +83,13 @@ export function AdminForgotPasswordForm() {
             Forgot password
           </Heading>
           <Text color="fg.muted" fontSize="sm">
-            Enter your admin email and we&apos;ll send a reset link.
+            We&apos;ll email you a link if an admin account matches.
           </Text>
         </Stack>
         {done ? (
           <Stack gap={3}>
             <Text role="status" color="fg.default" fontSize="sm">
-              {done}
+              {PRIVACY_SAFE_SUCCESS}
             </Text>
             <NextLink
               href="/admin/login"
@@ -89,14 +101,16 @@ export function AdminForgotPasswordForm() {
         ) : (
           <form onSubmit={onSubmit} noValidate>
             <Stack gap={4}>
-              <Field.Root required>
-                <Field.Label>Email</Field.Label>
+              <Field.Root id="forgot-email" required>
+                <Field.Label htmlFor="forgot-email">Email</Field.Label>
                 <Input
+                  id="forgot-email"
                   type="email"
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={busy}
+                  placeholder="you@margheritapizza.uk"
                 />
               </Field.Root>
               {error ? (

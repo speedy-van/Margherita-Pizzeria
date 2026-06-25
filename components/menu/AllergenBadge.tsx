@@ -7,8 +7,6 @@ export interface AllergenBadgeProps {
 }
 
 const SEVERITY_TONE: Record<string, { bg: string; color: string; border: string }> = {
-  gluten: { bg: "#3a2e1a", color: "#f1d28a", border: "#4a3a22" },
-  milk: { bg: "#1e2c3a", color: "#a8d2f5", border: "#26384a" },
   egg: { bg: "#2c2a1a", color: "#e8d97a", border: "#3a3622" },
   nuts: { bg: "#2c1a1a", color: "#f0b89a", border: "#3a2222" },
   peanuts: { bg: "#2c1a1a", color: "#f0b89a", border: "#3a2222" },

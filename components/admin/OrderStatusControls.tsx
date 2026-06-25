@@ -12,23 +12,29 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { AdminErrorState } from "@/components/admin/AdminErrorState";
-import { ADMIN_ORDER_STATUSES } from "@/lib/admin/validation";
-import type { OrderStatus } from "@/types/database";
+import { getAdminOrderNextStatuses } from "@/lib/admin/validation";
+import type { OrderStatus, OrderType } from "@/types/database";
 
 export interface OrderStatusControlsProps {
   orderId: string;
   currentStatus: OrderStatus;
+  orderType: OrderType;
 }
 
 export function OrderStatusControls({
   orderId,
   currentStatus,
+  orderType,
 }: OrderStatusControlsProps) {
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(currentStatus);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
+  const options = [
+    currentStatus,
+    ...getAdminOrderNextStatuses(currentStatus, orderType),
+  ];
 
   const save = async () => {
     setError(null);
@@ -65,7 +71,7 @@ export function OrderStatusControls({
             value={status}
             onChange={(e) => setStatus(e.target.value as OrderStatus)}
           >
-            {ADMIN_ORDER_STATUSES.map((s) => (
+            {options.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>

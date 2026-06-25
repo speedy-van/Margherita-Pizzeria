@@ -23,6 +23,7 @@ import type {
   AdminTable,
   AdminTimeSlot,
 } from "@/lib/admin/types";
+import { validateOpeningHours } from "@/lib/utils/shop-hours";
 import type { OpeningHours } from "@/types/database";
 
 export interface SettingsAdminClientProps {
@@ -89,6 +90,11 @@ export function SettingsAdminClient({
       setError("Check numeric fields are valid.");
       return;
     }
+    const openingHours = validateOpeningHours(state.openingHours);
+    if (!openingHours) {
+      setError("Check opening hours. Close must be after open; use 00:00 for midnight.");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/admin/settings", {
@@ -101,7 +107,7 @@ export function SettingsAdminClient({
           deliveryTimeMinutes: del.value,
           depositEnabled: state.depositEnabled,
           depositAmountPence: dep.value,
-          openingHours: state.openingHours,
+          openingHours,
         }),
       });
       const json = (await res.json()) as

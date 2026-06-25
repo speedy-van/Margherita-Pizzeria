@@ -122,9 +122,10 @@ export function AdminResetPasswordForm({ token }: AdminResetPasswordFormProps) {
         ) : (
           <form onSubmit={onSubmit} noValidate>
             <Stack gap={4}>
-              <Field.Root required>
-                <Field.Label>New password</Field.Label>
+              <Field.Root id="reset-password" required>
+                <Field.Label htmlFor="reset-password">New password</Field.Label>
                 <Input
+                  id="reset-password"
                   type="password"
                   autoComplete="new-password"
                   value={password}
@@ -132,9 +133,10 @@ export function AdminResetPasswordForm({ token }: AdminResetPasswordFormProps) {
                   disabled={busy}
                 />
               </Field.Root>
-              <Field.Root required>
-                <Field.Label>Confirm password</Field.Label>
+              <Field.Root id="reset-confirm" required>
+                <Field.Label htmlFor="reset-confirm">Confirm password</Field.Label>
                 <Input
+                  id="reset-confirm"
                   type="password"
                   autoComplete="new-password"
                   value={confirm}

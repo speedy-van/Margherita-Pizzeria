@@ -9,10 +9,13 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
+import NextImage from "next/image";
 import NextLink from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -26,14 +29,19 @@ export function AdminLoginForm() {
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    if (!email.trim() || !password) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
       setError("Enter your email and password.");
+      return;
+    }
+    if (!EMAIL_RE.test(trimmedEmail)) {
+      setError("Enter a valid email address.");
       return;
     }
     setBusy(true);
     try {
       const result = await signIn("credentials", {
-        email: email.trim(),
+        email: trimmedEmail,
         password,
         redirect: false,
       });
@@ -61,9 +69,17 @@ export function AdminLoginForm() {
       padding={{ base: 6, md: 8 }}
     >
       <Stack gap={5}>
-        <Stack gap={1.5}>
+        <Stack gap={2} alignItems="center" textAlign="center">
+          <NextImage
+            src="/logo.png"
+            alt="Margherita Pizza"
+            width={72}
+            height={72}
+            priority
+            style={{ borderRadius: "14px", objectFit: "cover" }}
+          />
           <Heading as="h1" fontFamily="heading" fontSize="2xl" color="fg.default">
-            Staff sign-in
+            Staff sign in
           </Heading>
           <Text color="fg.muted" fontSize="sm">
             Authorised staff only. Activity is logged.
@@ -71,19 +87,22 @@ export function AdminLoginForm() {
         </Stack>
         <form onSubmit={onSubmit} noValidate>
           <Stack gap={4}>
-            <Field.Root required>
-              <Field.Label>Email</Field.Label>
+            <Field.Root id="login-email" required>
+              <Field.Label htmlFor="login-email">Email</Field.Label>
               <Input
+                id="login-email"
                 type="email"
-                autoComplete="username"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={busy}
+                placeholder="you@margheritapizza.uk"
               />
             </Field.Root>
-            <Field.Root required>
-              <Field.Label>Password</Field.Label>
+            <Field.Root id="login-password" required>
+              <Field.Label htmlFor="login-password">Password</Field.Label>
               <Input
+                id="login-password"
                 type="password"
                 autoComplete="current-password"
                 value={password}

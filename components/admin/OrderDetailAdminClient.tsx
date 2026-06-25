@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, Grid, Heading, Stack, Text } from "@chakra-ui/react";
+import { Box, Grid, Heading, HStack, Stack, Text } from "@chakra-ui/react";
+import NextLink from "next/link";
 
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { OrderStatusControls } from "@/components/admin/OrderStatusControls";
@@ -58,9 +59,25 @@ export function OrderDetailAdminClient({ order }: OrderDetailAdminClientProps) {
         <Heading as="h1" fontFamily="heading" size="lg" color="fg.default">
           Order {order.reference ?? order.id.slice(0, 8)}
         </Heading>
-        <Box>
+        <HStack gap={3} flexWrap="wrap">
           <AdminStatusBadge status={order.status} />
-        </Box>
+          <NextLink
+            href={`/admin/invoices/${order.id}`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              minHeight: 32,
+              paddingInline: 12,
+              borderRadius: 6,
+              border: "1px solid var(--chakra-colors-border)",
+              fontSize: 14,
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            View invoice
+          </NextLink>
+        </HStack>
         <Text fontSize="sm" color="fg.muted">
           Placed {formatDateTime(order.createdAt)} · Updated{" "}
           {formatDateTime(order.updatedAt)}
@@ -140,6 +157,7 @@ export function OrderDetailAdminClient({ order }: OrderDetailAdminClientProps) {
           <OrderStatusControls
             orderId={order.id}
             currentStatus={order.status}
+            orderType={order.type}
           />
         </Card>
       </Grid>

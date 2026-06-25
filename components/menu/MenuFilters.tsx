@@ -11,8 +11,6 @@ import {
 } from "@chakra-ui/react";
 
 const FILTERABLE_ALLERGENS = [
-  "gluten",
-  "milk",
   "egg",
   "nuts",
   "peanuts",

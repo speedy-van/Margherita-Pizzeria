@@ -176,7 +176,7 @@ export function MenuItemForm({
             value={state.allergensStr}
             onChange={(e) => setState({ ...state, allergensStr: e.target.value })}
             disabled={busy}
-            placeholder="gluten, milk, eggs"
+            placeholder="eggs, nuts, sesame"
           />
         </Field.Root>
         <Checkbox.Root

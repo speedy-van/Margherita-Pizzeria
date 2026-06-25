@@ -24,7 +24,10 @@ export default async function AdminResetPasswordPage({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "24px",
+        paddingTop: "max(24px, env(safe-area-inset-top))",
+        paddingRight: "24px",
+        paddingBottom: "max(24px, env(safe-area-inset-bottom))",
+        paddingLeft: "24px",
       }}
     >
       <AdminResetPasswordForm token={typeof token === "string" ? token : ""} />
