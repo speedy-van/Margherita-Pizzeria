@@ -39,3 +39,25 @@ next-env.d.ts
 !/drizzle/*.sql
 !/drizzle/meta/
 !/drizzle/meta/*.json
+
+# user-uploaded images (served from DB/CDN, not versioned)
+/public/uploads/
+
+# local working screenshots and ad management PNGs
+*.png
+*.jpg
+*.gif
+!/public/**/*.png
+!/public/**/*.jpg
+!/public/**/*.gif
+!/apps/**/*.png
+!/components/**/*.png
+
+# local docs / temp artifacts
+/tmp/
+APP_STORE_SUBMISSION_PACK.md
+JUSTEAT_RANKING_ACTION_PACK.md
+/appstore_screenshots/
+/justeat_upload_images/
+justeat_*.jpg
+justeat_*.gif
