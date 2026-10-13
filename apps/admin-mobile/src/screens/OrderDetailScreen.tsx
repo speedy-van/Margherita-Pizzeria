@@ -99,7 +99,7 @@ export function OrderDetailScreen({ route }: Props): JSX.Element {
         return;
       }
       await reload();
-      void refreshBadges();
+      void refreshBadges({ force: true });
       await dialog.alert({
         title: "Status updated",
         message: `Order marked ${ORDER_STATUS_LABELS[next].toLowerCase()}.`,

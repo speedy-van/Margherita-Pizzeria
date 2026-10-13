@@ -16,7 +16,6 @@ import { useApiGet } from "@/api/useApiGet";
 import type { AdminBookingListItem, BookingStatus } from "@/api/types";
 import { Banner } from "@/components/controls";
 import { Card, EmptyState, StatusBadge } from "@/components/ui";
-import { useBadges } from "@/hooks/useBadges";
 import { usePolling } from "@/hooks/usePolling";
 import { palette } from "@/format";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -40,7 +39,6 @@ export function BookingsScreen({ navigation }: Props): JSX.Element {
   const { data, error, loading, reload } = useApiGet<AdminBookingListItem[]>(
     "/api/admin/bookings",
   );
-  const { refresh: refreshBadges } = useBadges();
 
   useFocusEffect(
     useCallback(() => {
@@ -51,8 +49,7 @@ export function BookingsScreen({ navigation }: Props): JSX.Element {
   usePolling(
     useCallback(async () => {
       await reload();
-      await refreshBadges();
-    }, [reload, refreshBadges]),
+    }, [reload]),
     30_000,
   );
 

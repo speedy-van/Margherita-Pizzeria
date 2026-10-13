@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, notInArray, type SQL } from "drizzle-orm";
 
 import { db } from "@/lib/db/client";
 import {
@@ -66,7 +66,35 @@ import {
 
 /* ─────────────── Orders ─────────────── */
 
-function toOrderListItem(row: Order): AdminOrderListItem {
+type OrderListRow = Pick<
+  Order,
+  | "id"
+  | "reference"
+  | "type"
+  | "status"
+  | "customerName"
+  | "customerEmail"
+  | "customerPhone"
+  | "totalPence"
+  | "paymentMethod"
+  | "items"
+  | "createdAt"
+  | "updatedAt"
+>;
+
+type AdminOrderListOptions = {
+  limit?: number;
+  statuses?: readonly OrderStatus[];
+  excludeStatuses?: readonly OrderStatus[];
+};
+
+function boundedLimit(limit: number | undefined): number | undefined {
+  if (limit == null) return undefined;
+  if (!Number.isFinite(limit)) return undefined;
+  return Math.max(0, Math.trunc(limit));
+}
+
+function toOrderListItem(row: OrderListRow): AdminOrderListItem {
   const items = Array.isArray(row.items) ? row.items : [];
   const itemCount = items.reduce(
     (sum, item) => sum + (typeof item.quantity === "number" ? item.quantity : 0),
@@ -104,11 +132,46 @@ function toOrderDetail(row: Order): AdminOrderDetail {
   };
 }
 
-export async function getAdminOrders(): Promise<AdminOrderListItem[]> {
-  const rows = await db
-    .select()
+export async function getAdminOrders(
+  options: AdminOrderListOptions = {},
+): Promise<AdminOrderListItem[]> {
+  const filters: SQL[] = [];
+  if (options.statuses?.length) {
+    filters.push(inArray(orders.status, [...options.statuses]));
+  }
+  if (options.excludeStatuses?.length) {
+    filters.push(notInArray(orders.status, [...options.excludeStatuses]));
+  }
+
+  let query = db
+    .select({
+      id: orders.id,
+      reference: orders.reference,
+      type: orders.type,
+      status: orders.status,
+      customerName: orders.customerName,
+      customerEmail: orders.customerEmail,
+      customerPhone: orders.customerPhone,
+      totalPence: orders.totalPence,
+      paymentMethod: orders.paymentMethod,
+      items: orders.items,
+      createdAt: orders.createdAt,
+      updatedAt: orders.updatedAt,
+    })
     .from(orders)
-    .orderBy(desc(orders.createdAt));
+    .$dynamic();
+
+  if (filters.length > 0) {
+    query = query.where(and(...filters));
+  }
+
+  query = query.orderBy(desc(orders.createdAt), desc(orders.id));
+  const limit = boundedLimit(options.limit);
+  if (limit != null) {
+    query = query.limit(limit);
+  }
+
+  const rows = await query;
   return rows.map(toOrderListItem);
 }
 
@@ -136,7 +199,28 @@ export { validateAdminOrderStatusInput };
 
 /* ─────────────── Bookings ─────────────── */
 
-function toBookingListItem(row: TableBooking): AdminBookingListItem {
+type BookingListRow = Pick<
+  TableBooking,
+  | "id"
+  | "reference"
+  | "date"
+  | "timeSlot"
+  | "covers"
+  | "status"
+  | "depositPaid"
+  | "customerName"
+  | "customerEmail"
+  | "customerPhone"
+  | "createdAt"
+  | "updatedAt"
+>;
+
+type AdminBookingListOptions = {
+  limit?: number;
+  statuses?: readonly BookingStatus[];
+};
+
+function toBookingListItem(row: BookingListRow): AdminBookingListItem {
   return {
     id: row.id,
     reference: row.reference ?? null,
@@ -160,11 +244,38 @@ function toBookingDetail(row: TableBooking): AdminBookingDetail {
   };
 }
 
-export async function getAdminBookings(): Promise<AdminBookingListItem[]> {
-  const rows = await db
-    .select()
+export async function getAdminBookings(
+  options: AdminBookingListOptions = {},
+): Promise<AdminBookingListItem[]> {
+  let query = db
+    .select({
+      id: tableBookings.id,
+      reference: tableBookings.reference,
+      date: tableBookings.date,
+      timeSlot: tableBookings.timeSlot,
+      covers: tableBookings.covers,
+      status: tableBookings.status,
+      depositPaid: tableBookings.depositPaid,
+      customerName: tableBookings.customerName,
+      customerEmail: tableBookings.customerEmail,
+      customerPhone: tableBookings.customerPhone,
+      createdAt: tableBookings.createdAt,
+      updatedAt: tableBookings.updatedAt,
+    })
     .from(tableBookings)
-    .orderBy(desc(tableBookings.createdAt));
+    .$dynamic();
+
+  if (options.statuses?.length) {
+    query = query.where(inArray(tableBookings.status, [...options.statuses]));
+  }
+
+  query = query.orderBy(desc(tableBookings.createdAt), desc(tableBookings.id));
+  const limit = boundedLimit(options.limit);
+  if (limit != null) {
+    query = query.limit(limit);
+  }
+
+  const rows = await query;
   return rows.map(toBookingListItem);
 }
 

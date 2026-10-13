@@ -3,6 +3,7 @@ package uk.margheritapizzeria.admin.dashboard.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,21 +23,33 @@ class DashboardViewModel(private val repo: DashboardRepository) : ViewModel() {
 
     private val _state = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
     val state: StateFlow<DashboardUiState> = _state.asStateFlow()
+    private var refreshJob: Job? = null
+    private var queuedRefresh = false
 
-    init { refresh() }
+    init {
+        refresh()
+    }
 
-    fun refresh() {
+    fun refresh(silent: Boolean = false) {
+        if (refreshJob?.isActive == true) {
+            if (!silent) queuedRefresh = true
+            return
+        }
+
         val current = _state.value
-        if (current is DashboardUiState.Ready) {
+        if (current is DashboardUiState.Ready && !silent) {
             _state.value = current.copy(refreshing = true)
-        } else {
+        } else if (current !is DashboardUiState.Ready) {
             _state.value = DashboardUiState.Loading
         }
-        viewModelScope.launch {
-            when (val result = repo.load()) {
-                is ApiResult.Success -> _state.value = DashboardUiState.Ready(result.data, refreshing = false)
-                is ApiResult.Failure -> _state.value = DashboardUiState.Error(result.error)
-            }
+        refreshJob = viewModelScope.launch {
+            do {
+                queuedRefresh = false
+                when (val result = repo.load()) {
+                    is ApiResult.Success -> _state.value = DashboardUiState.Ready(result.data, refreshing = false)
+                    is ApiResult.Failure -> _state.value = DashboardUiState.Error(result.error)
+                }
+            } while (queuedRefresh)
         }
     }
 

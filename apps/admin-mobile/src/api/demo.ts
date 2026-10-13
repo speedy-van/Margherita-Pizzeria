@@ -42,14 +42,14 @@ let orders: AdminOrderDetail[] = [
     customerName: "Apple Review",
     customerEmail: "reviewer@example.com",
     customerPhone: "+44 7700 900123",
-    totalPence: 2498,
+    totalPence: 2747,
     paymentMethod: "stripe_card",
     itemCount: 3,
     createdAt: "2026-06-22T18:20:00.000Z",
     updatedAt: "2026-06-22T18:25:00.000Z",
     address: "1 Infinite Loop, Glasgow",
     subtotalPence: 2298,
-    deliveryFeePence: 200,
+    deliveryFeePence: 449,
     discountPence: 0,
     discountCode: null,
     estimatedTime: "25-35 min",
@@ -215,7 +215,7 @@ let settings: AdminSettings = {
   deliveryOpen: true,
   busyMode: "normal",
   minDeliveryOrderPence: 1000,
-  deliveryFeePence: 200,
+  deliveryFeePence: 449,
   prepTimeMinutes: 25,
   deliveryTimeMinutes: 40,
   customerMessage: "",
@@ -307,7 +307,7 @@ export function demoApiCall<T>({
   if (path === "/api/mobile/admin/logout") {
     return success({ ok: true });
   }
-  if (path === "/api/admin/dashboard") {
+  if (path === "/api/admin/dashboard" || path === "/api/admin/dashboard?view=badges") {
     return success(buildDashboard());
   }
   if (path === "/api/admin/orders") {

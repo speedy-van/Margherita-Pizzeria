@@ -9,12 +9,14 @@ import {
   type ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, type AppStateStatus } from "react-native";
 
 import { apiCall, getToken } from "@/api/client";
 import { isDemoToken } from "@/api/demo";
 import type { AdminDashboardStats, AdminOrderListItem } from "@/api/types";
 import { useSession } from "@/auth/SessionContext";
-import { useDialog, type DialogAction } from "@/components/dialog";
+import { useDialog } from "@/components/dialog";
+import { NewOrderAlertModal } from "@/components/NewOrderAlertModal";
 import {
   armAlertSoundOnFirstGesture,
   ensureBrowserNotificationPermission,
@@ -24,18 +26,20 @@ import {
   stopAlertSound,
 } from "@/hooks/alerts";
 import {
-  canTransitionOrderStatus,
   formatCurrencyGBP,
-  inferPaymentStatus,
   isActiveOrder,
-  isTestOrderHeuristic,
 } from "@/lib/order-operations";
 import { navigateToBooking, navigateToOrder } from "@/navigation/ref";
+import {
+  BADGE_POLL_INTERVAL_MS,
+  nextPollDelayMs,
+  retryDelayMs,
+} from "./pollingPolicy";
 
 type Badges = {
   activeOrders: number;
   pendingBookings: number;
-  refresh: () => Promise<void>;
+  refresh: (options?: { force?: boolean }) => Promise<void>;
 };
 
 const BadgesContext = createContext<Badges>({
@@ -44,12 +48,14 @@ const BadgesContext = createContext<Badges>({
   refresh: async () => undefined,
 });
 
-// Aggressive polling so the owner sees a new order within a few seconds.
-// 30s was way too slow for a live till — switched to 8s. The dashboard
-// endpoint is cheap (single query) so this is fine.
-const POLL_MS = 8_000;
-const ALERTED_ORDER_IDS_KEY = "margherita-admin.alerted-order-ids.v1";
+// Keep the existing foreground alert target, but use the lightweight badge
+// view so recurring alert checks do not fetch the full dashboard payload.
+const ALERTED_ORDER_IDS_KEY = "margherita-admin.alerted-order-ids.v3";
 const MAX_STORED_ALERT_IDS = 120;
+
+function isActiveAppState(state: AppStateStatus): boolean {
+  return state === "active";
+}
 
 async function loadStoredOrderIds(): Promise<Set<string>> {
   try {
@@ -75,12 +81,29 @@ async function persistOrderIds(ids: Set<string>): Promise<void> {
 }
 
 export function BadgesProvider({ children }: { children: ReactNode }): JSX.Element {
-  const { status } = useSession();
+  const { status, user } = useSession();
   const dialog = useDialog();
   const [activeOrders, setActiveOrders] = useState(0);
   const [pendingBookings, setPendingBookings] = useState(0);
+  const [appActive, setAppActive] = useState(() =>
+    isActiveAppState(AppState.currentState),
+  );
+  const [alertOrder, setAlertOrder] = useState<AdminOrderListItem | null>(null);
+  const alertOrderRef = useRef<AdminOrderListItem | null>(null);
+  const alertQueue = useRef<AdminOrderListItem[]>([]);
+  const queuedOrderIds = useRef<Set<string>>(new Set());
 
   const inflight = useRef(false);
+  const pendingRefresh = useRef(false);
+  const failureCount = useRef(0);
+  const nextAllowedAt = useRef(0);
+  const stoppedAfterAuthFailure = useRef(false);
+  const statusRef = useRef(status);
+  const appActiveRef = useRef(appActive);
+  const sessionKey = status === "signed-in"
+    ? `${user?.id ?? "unknown"}:${getToken() ?? "dev-bypass"}`
+    : "signed-out";
+  const sessionKeyRef = useRef(sessionKey);
   // Track IDs we've already shown the owner. We seed these from the FIRST
   // successful poll after sign-in so existing orders/bookings don't trigger
   // a flood of "new order" alerts on launch.
@@ -88,139 +111,225 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
   const seenBookingIds = useRef<Set<string> | null>(null);
   const demoAlertShown = useRef(false);
 
-  const refresh = useCallback(async () => {
-    if (status !== "signed-in" || inflight.current) return;
-    inflight.current = true;
-    const res = await apiCall<AdminDashboardStats>({
-      path: "/api/admin/dashboard",
+  useEffect(() => {
+    alertOrderRef.current = alertOrder;
+  }, [alertOrder]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      setAppActive(isActiveAppState(nextState));
     });
-    inflight.current = false;
-    if (!res.ok) return;
+    return () => sub.remove();
+  }, []);
 
-    const active = res.data.latestOrders.filter(isActiveOrder).length;
-    setActiveOrders(active);
-    setPendingBookings(res.data.pendingBookingsCount ?? 0);
+  useEffect(() => {
+    statusRef.current = status;
+    appActiveRef.current = appActive;
+    sessionKeyRef.current = sessionKey;
+  }, [appActive, sessionKey, status]);
 
-    if (isDemoToken(getToken()) && !demoAlertShown.current) {
-      const demoOrder = res.data.latestOrders.find((order) => order.id === "demo-order-1001")
-        ?? res.data.latestOrders[0];
-      if (demoOrder) {
-        demoAlertShown.current = true;
-        const title = "Demo new delivery order";
-        const body = `${demoOrder.customerName} · ${demoOrder.itemCount} items · ${formatCurrencyGBP(
-          demoOrder.totalPence,
-        )}`;
-        void startAlertSound();
-        showBrowserNotification(title, body);
-        void dialog.show({
-          title,
-          message:
-            `${body}\n\nThis is a safe Apple Review demo popup. It does not create or change a real order.`,
-          tone: "success",
-          playSound: false,
-          dismissOnBackdrop: false,
-          onClose: () => stopAlertSound(),
-          actions: [
-            { label: "Dismiss", tone: "secondary" },
-            {
-              label: "View demo order",
-              tone: "primary",
-              onPress: () => navigateToOrder(demoOrder.id),
-            },
-          ],
-        });
-      }
+  const showOrderAlert = useCallback((order: AdminOrderListItem): void => {
+    const notifTitle = `New ${order.type} order`;
+    const notifBody = `${order.reference ?? order.id.slice(0, 8)} · ${order.customerName} · ${formatCurrencyGBP(order.totalPence)}`;
+    void startAlertSound();
+    showBrowserNotification(notifTitle, notifBody);
+    alertOrderRef.current = order;
+    setAlertOrder(order);
+  }, []);
+
+  const enqueueOrderAlerts = useCallback((orders: AdminOrderListItem[]): void => {
+    const fresh = orders.filter((order) => {
+      if (alertOrderRef.current?.id === order.id) return false;
+      if (queuedOrderIds.current.has(order.id)) return false;
+      queuedOrderIds.current.add(order.id);
+      return true;
+    });
+    if (fresh.length === 0) return;
+
+    if (alertOrderRef.current) {
+      alertQueue.current.push(...fresh);
+      return;
     }
 
-    // --- New-item detection ----------------------------------------------
-    const incomingOrderIds = new Set(res.data.latestOrders.map((o) => o.id));
-    const incomingBookingIds = new Set(
-      res.data.latestBookings.map((b) => b.id),
-    );
+    const [first, ...rest] = fresh;
+    if (!first) return;
+    alertQueue.current.push(...rest);
+    showOrderAlert(first);
+  }, [showOrderAlert]);
 
-    if (seenOrderIds.current === null) {
-      const stored = await loadStoredOrderIds();
-      for (const id of incomingOrderIds) stored.add(id);
-      seenOrderIds.current = stored;
-      void persistOrderIds(stored);
-    } else {
-      const newOrders = res.data.latestOrders.filter(
-        (o) =>
-          !seenOrderIds.current!.has(o.id) &&
-          o.status === "received",
-      );
-      for (const id of incomingOrderIds) seenOrderIds.current.add(id);
-      void persistOrderIds(seenOrderIds.current);
-      const alertableOrders = newOrders.filter(
-        (order) => !isTestOrderHeuristic(order),
-      );
-      if (alertableOrders.length > 0) {
-        const first = alertableOrders[0]!;
-        const title =
-          alertableOrders.length === 1
-            ? `New ${first.type} order`
-            : `${alertableOrders.length} new orders`;
-        const payment = inferPaymentStatus(first);
-        const body =
-          alertableOrders.length === 1
-            ? `${first.reference ?? first.id.slice(0, 8)}\n${first.customerName} · ${first.type}\n${first.itemCount} item${
-                first.itemCount === 1 ? "" : "s"
-              } · ${formatCurrencyGBP(first.totalPence)}\n${payment.label}`
-            : `Latest: ${first.customerName} · ${formatCurrencyGBP(first.totalPence)}`;
-        // Loop the alert sound until the owner taps a button. The dialog's
-        // onClose hook stops it for any exit path (button / Android back).
-        void startAlertSound();
-        showBrowserNotification(title, body);
-        void dialog.show({
-          title,
-          message: body,
-          tone: "success",
-          playSound: false,
-          dismissOnBackdrop: false,
-          onClose: () => stopAlertSound(),
-          actions: buildOrderAlertActions(first, refresh),
-        });
-      }
+  const closeOrderAlert = useCallback((): void => {
+    stopAlertSound();
+    if (alertOrderRef.current) {
+      queuedOrderIds.current.delete(alertOrderRef.current.id);
+    }
+    const next = alertQueue.current.shift() ?? null;
+    if (next) {
+      queuedOrderIds.current.delete(next.id);
+      showOrderAlert(next);
+      return;
+    }
+    alertOrderRef.current = null;
+    setAlertOrder(null);
+  }, [showOrderAlert]);
+
+  const refresh = useCallback(async (options: { force?: boolean } = {}) => {
+    if (status !== "signed-in") return;
+    if (!options.force && !appActiveRef.current) return;
+    if (stoppedAfterAuthFailure.current) return;
+
+    const now = Date.now();
+    if (!options.force && nextAllowedAt.current > now) return;
+
+    if (inflight.current) {
+      pendingRefresh.current = true;
+      return;
     }
 
-    if (seenBookingIds.current === null) {
-      seenBookingIds.current = incomingBookingIds;
-    } else {
-      const newBookings = res.data.latestBookings.filter(
-        (b) =>
-          !seenBookingIds.current!.has(b.id) && b.status === "pending",
+    const requestSessionKey = sessionKeyRef.current;
+    inflight.current = true;
+    try {
+      const res = await apiCall<AdminDashboardStats>({
+        path: "/api/admin/dashboard?view=badges",
+      });
+      if (
+        sessionKeyRef.current !== requestSessionKey ||
+        statusRef.current !== "signed-in" ||
+        !appActiveRef.current
+      ) {
+        return;
+      }
+
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          stoppedAfterAuthFailure.current = true;
+          return;
+        }
+        failureCount.current += 1;
+        nextAllowedAt.current =
+          Date.now() +
+          retryDelayMs({
+            failureCount: failureCount.current,
+            retryAfterMs: res.status === 429 ? res.retryAfterMs : undefined,
+          });
+        return;
+      }
+
+      failureCount.current = 0;
+      nextAllowedAt.current = 0;
+
+      const active = res.data.latestOrders.filter(isActiveOrder).length;
+      setActiveOrders(active);
+      setPendingBookings(res.data.pendingBookingsCount ?? 0);
+
+      if (isDemoToken(getToken()) && !demoAlertShown.current) {
+        const demoOrder = res.data.latestOrders.find((order) => order.id === "demo-order-1001")
+          ?? res.data.latestOrders[0];
+        if (demoOrder) {
+          demoAlertShown.current = true;
+          const title = "Demo new delivery order";
+          const body = `${demoOrder.customerName} · ${demoOrder.itemCount} items · ${formatCurrencyGBP(
+            demoOrder.totalPence,
+          )}`;
+          void startAlertSound();
+          showBrowserNotification(title, body);
+          void dialog.show({
+            title,
+            message:
+              `${body}\n\nThis is a safe Apple Review demo popup. It does not create or change a real order.`,
+            tone: "success",
+            playSound: false,
+            dismissOnBackdrop: false,
+            onClose: () => stopAlertSound(),
+            actions: [
+              { label: "Dismiss", tone: "secondary" },
+              {
+                label: "View demo order",
+                tone: "primary",
+                onPress: () => navigateToOrder(demoOrder.id),
+              },
+            ],
+          });
+        }
+      }
+
+      // --- New-item detection ----------------------------------------------
+      const receivedOrders = res.data.latestOrders.filter(
+        (order) => order.status === "received",
       );
-      for (const id of incomingBookingIds) seenBookingIds.current.add(id);
-      if (newBookings.length > 0) {
-        const first = newBookings[0]!;
-        const title =
-          newBookings.length === 1
-            ? "New booking request"
-            : `${newBookings.length} new bookings`;
-        const body = `${first.customerName} · ${first.covers} cover${
-          first.covers === 1 ? "" : "s"
-        } · ${first.date} ${first.timeSlot}`;
-        void startAlertSound();
-        showBrowserNotification(title, body);
-        void dialog.show({
-          title,
-          message: body,
-          tone: "info",
-          playSound: false,
-          dismissOnBackdrop: false,
-          onClose: () => stopAlertSound(),
-          actions: [
-            { label: "Dismiss", tone: "secondary" },
-            {
-              label: "View booking",
-              tone: "primary",
-              onPress: () => navigateToBooking(first.id),
-            },
-          ],
-        });
+      const incomingBookingIds = new Set(
+        res.data.latestBookings.map((b) => b.id),
+      );
+
+      if (seenOrderIds.current === null) {
+        seenOrderIds.current = await loadStoredOrderIds();
+        if (
+          sessionKeyRef.current !== requestSessionKey ||
+          statusRef.current !== "signed-in" ||
+          !appActiveRef.current
+        ) {
+          return;
+        }
+      }
+      const newOrders = receivedOrders.filter(
+        (o) => !seenOrderIds.current!.has(o.id),
+      );
+      if (newOrders.length > 0) {
+        for (const order of newOrders) seenOrderIds.current.add(order.id);
+        void persistOrderIds(seenOrderIds.current);
+        enqueueOrderAlerts(newOrders);
+      }
+
+      if (seenBookingIds.current === null) {
+        seenBookingIds.current = incomingBookingIds;
+      } else {
+        const newBookings = res.data.latestBookings.filter(
+          (b) =>
+            !seenBookingIds.current!.has(b.id) && b.status === "pending",
+        );
+        for (const id of incomingBookingIds) seenBookingIds.current.add(id);
+        if (newBookings.length > 0) {
+          const first = newBookings[0]!;
+          const title =
+            newBookings.length === 1
+              ? "New booking request"
+              : `${newBookings.length} new bookings`;
+          const body = `${first.customerName} · ${first.covers} cover${
+            first.covers === 1 ? "" : "s"
+          } · ${first.date} ${first.timeSlot}`;
+          void startAlertSound();
+          showBrowserNotification(title, body);
+          void dialog.show({
+            title,
+            message: body,
+            tone: "info",
+            playSound: false,
+            dismissOnBackdrop: false,
+            onClose: () => stopAlertSound(),
+            actions: [
+              { label: "Dismiss", tone: "secondary" },
+              {
+                label: "View booking",
+                tone: "primary",
+                onPress: () => navigateToBooking(first.id),
+              },
+            ],
+          });
+        }
+      }
+    } finally {
+      inflight.current = false;
+      if (
+        pendingRefresh.current &&
+        statusRef.current === "signed-in" &&
+        appActiveRef.current
+      ) {
+        pendingRefresh.current = false;
+        void refresh({ force: true });
+      } else {
+        pendingRefresh.current = false;
       }
     }
-  }, [status, dialog]);
+  }, [status, dialog, enqueueOrderAlerts]);
 
   useEffect(() => {
     if (status !== "signed-in") {
@@ -229,9 +338,20 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
       seenOrderIds.current = null;
       seenBookingIds.current = null;
       demoAlertShown.current = false;
+      alertQueue.current = [];
+      queuedOrderIds.current.clear();
+      alertOrderRef.current = null;
+      setAlertOrder(null);
+      failureCount.current = 0;
+      nextAllowedAt.current = 0;
+      pendingRefresh.current = false;
+      stoppedAfterAuthFailure.current = false;
       stopAlertSound();
       return;
     }
+    stoppedAfterAuthFailure.current = false;
+    failureCount.current = 0;
+    nextAllowedAt.current = 0;
     // Best-effort: request OS notification permission once signed in, and
     // start downloading the mp3 so the first alert plays instantly.
     void ensureBrowserNotificationPermission();
@@ -240,10 +360,34 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
     // so we never get a user gesture to unlock audio. Arm a one-shot
     // listener that primes on the first click/keypress anywhere.
     armAlertSoundOnFirstGesture();
-    void refresh();
-    const id = setInterval(() => void refresh(), POLL_MS);
-    return () => clearInterval(id);
-  }, [status, refresh]);
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "signed-in" || !appActive || stoppedAfterAuthFailure.current) {
+      return;
+    }
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const schedule = (delayMs: number) => {
+      timer = setTimeout(() => {
+        if (cancelled) return;
+        void refresh().finally(() => {
+          if (cancelled) return;
+          schedule(nextPollDelayMs({ nextAllowedAt: nextAllowedAt.current }));
+        });
+      }, delayMs);
+    };
+
+    void refresh({ force: true });
+    schedule(BADGE_POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, [appActive, refresh, status]);
 
   const value = useMemo<Badges>(
     () => ({ activeOrders, pendingBookings, refresh }),
@@ -251,50 +395,20 @@ export function BadgesProvider({ children }: { children: ReactNode }): JSX.Eleme
   );
 
   return (
-    <BadgesContext.Provider value={value}>{children}</BadgesContext.Provider>
+    <BadgesContext.Provider value={value}>
+      {children}
+      {alertOrder !== null ? (
+        <NewOrderAlertModal
+          order={alertOrder}
+          onClose={closeOrderAlert}
+          refresh={() => refresh({ force: true })}
+        />
+      ) : null}
+    </BadgesContext.Provider>
   );
 }
 
-function buildOrderAlertActions(
-  order: AdminOrderListItem,
-  refresh: () => Promise<void>,
-): DialogAction[] {
-  const actions: DialogAction[] = [
-    { label: "Dismiss", tone: "secondary" as const },
-    {
-      label: "View order",
-      tone: "primary" as const,
-      onPress: () => navigateToOrder(order.id),
-    },
-  ];
-  if (canTransitionOrderStatus(order.status, "making")) {
-    actions.push({
-      label: "Accept",
-      tone: "primary" as const,
-      onPress: () => {
-        void apiCall({
-          method: "POST",
-          path: `/api/admin/orders/${order.id}/status`,
-          body: { status: "making" },
-        }).then(() => refresh());
-      },
-    });
-  }
-  if (canTransitionOrderStatus(order.status, "rejected")) {
-    actions.push({
-      label: "Reject",
-      tone: "destructive" as const,
-      onPress: () => {
-        void apiCall({
-          method: "POST",
-          path: `/api/admin/orders/${order.id}/status`,
-          body: { status: "rejected" },
-        }).then(() => refresh());
-      },
-    });
-  }
-  return actions;
-}
+
 
 export function useBadges(): Badges {
   return useContext(BadgesContext);

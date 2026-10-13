@@ -75,7 +75,14 @@ type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export type ApiCallResult<T> =
   | { ok: true; status: number; data: T; raw: unknown }
-  | { ok: false; status: number; code: string; message: string; raw: unknown };
+  | {
+      ok: false;
+      status: number;
+      code: string;
+      message: string;
+      raw: unknown;
+      retryAfterMs?: number;
+    };
 
 export type ApiFileResult =
   | {
@@ -92,6 +99,19 @@ type ApiClientOptions = {
   path: string;
   body?: unknown;
 };
+
+function parseRetryAfterMs(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.ceil(seconds * 1000);
+  }
+  const dateMs = Date.parse(value);
+  if (!Number.isNaN(dateMs)) {
+    return Math.max(0, dateMs - Date.now());
+  }
+  return undefined;
+}
 
 let memoryBaseUrl: string | null = null;
 let memoryToken: string | null = null;
@@ -341,6 +361,7 @@ export async function apiCall<T>(
     notifyIfUnauthorized(path, response.status);
     debugLogAuthIssue(path, response.status);
     const envelope = raw as ApiEnvelope<T> | null;
+    const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"));
     if (envelope && envelope.ok === false && envelope.error) {
       return {
         ok: false,
@@ -348,6 +369,7 @@ export async function apiCall<T>(
         code: envelope.error.code,
         message: envelope.error.message,
         raw,
+        retryAfterMs,
       };
     }
     return {
@@ -356,6 +378,7 @@ export async function apiCall<T>(
       code: `HTTP_${response.status}`,
       message: `Request failed (${response.status})`,
       raw,
+      retryAfterMs,
     };
   }
 

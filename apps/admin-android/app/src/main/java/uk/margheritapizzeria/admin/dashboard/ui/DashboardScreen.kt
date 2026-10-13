@@ -16,10 +16,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import uk.margheritapizzeria.admin.bookings.model.AdminBookingListItem
 import uk.margheritapizzeria.admin.core.ui.components.ErrorState
 import uk.margheritapizzeria.admin.core.ui.components.LoadingState
@@ -37,16 +43,28 @@ fun DashboardScreen(
     onOpenOrder: (String) -> Unit,
     onOpenBooking: (String) -> Unit,
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(lifecycleOwner, viewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refresh(silent = true)
+            while (isActive) {
+                delay(5000)
+                viewModel.refresh(silent = true)
+            }
+        }
+    }
+
     when (val s = state) {
         is DashboardUiState.Loading -> LoadingState()
         is DashboardUiState.Error -> ErrorState(
             message = s.failure.message,
-            onRetry = viewModel::refresh,
+            onRetry = { viewModel.refresh() },
         )
         is DashboardUiState.Ready -> DashboardContent(
             data = s.data,
-            onRefresh = viewModel::refresh,
+            onRefresh = { viewModel.refresh() },
             onOpenOrder = onOpenOrder,
             onOpenBooking = onOpenBooking,
         )

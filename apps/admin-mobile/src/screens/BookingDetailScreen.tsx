@@ -64,7 +64,7 @@ export function BookingDetailScreen({ route }: Props): JSX.Element {
       return;
     }
     await reload();
-    void refreshBadges();
+    void refreshBadges({ force: true });
   };
 
   const confirm = async (

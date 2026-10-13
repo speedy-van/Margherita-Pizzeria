@@ -118,9 +118,13 @@ export function OrdersScreen({ navigation }: Props): JSX.Element {
   );
   const { refresh: refreshBadges } = useBadges();
 
-  const doRefresh = useCallback(async () => {
+  const doRefresh = useCallback(async (
+    options: { refreshBadges?: boolean } = {},
+  ) => {
     await reload();
-    await refreshBadges();
+    if (options.refreshBadges ?? true) {
+      await refreshBadges({ force: true });
+    }
     setLastUpdated(new Date());
   }, [reload, refreshBadges]);
 
@@ -144,7 +148,7 @@ export function OrdersScreen({ navigation }: Props): JSX.Element {
 
   usePolling(
     useCallback(async () => {
-      await doRefresh();
+      await doRefresh({ refreshBadges: false });
     }, [doRefresh]),
     20_000,
   );

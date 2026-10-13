@@ -25,7 +25,6 @@ import {
   StatusBadge,
 } from "@/components/ui";
 import { Banner, PrimaryButton, SecondaryButton } from "@/components/controls";
-import { useBadges } from "@/hooks/useBadges";
 import { usePolling } from "@/hooks/usePolling";
 import { formatRelative, palette, shadow } from "@/format";
 import { formatCurrencyGBP, isActiveOrder } from "@/lib/order-operations";
@@ -38,20 +37,17 @@ export function DashboardScreen({ navigation }: Props): JSX.Element {
   const { data, error, loading, reload } = useApiGet<AdminDashboardStats>(
     "/api/admin/dashboard",
   );
-  const { refresh: refreshBadges } = useBadges();
 
   useFocusEffect(
     useCallback(() => {
       void reload();
-      void refreshBadges();
-    }, [reload, refreshBadges]),
+    }, [reload]),
   );
 
   usePolling(
     useCallback(async () => {
       await reload();
-      await refreshBadges();
-    }, [reload, refreshBadges]),
+    }, [reload]),
     30_000,
   );
 
