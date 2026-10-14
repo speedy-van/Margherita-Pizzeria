@@ -19,9 +19,9 @@ const MotionBox = motion.create(Box);
 
 // Indicative price per pizza for the showcase pills (12" base).
 const PRICE_FROM: Record<string, string> = {
-  margherita: "£11",
-  pepperoni: "£11",
-  donner: "£12",
+  margherita: "£9.68",
+  pepperoni: "£10.56",
+  donner: "£11.44",
 };
 
 interface PizzaCardProps {
