@@ -4,6 +4,11 @@ import { Box, HStack, Stack, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 
+import {
+  trackLandingCallClick,
+  trackLandingDirectionsClick,
+  trackLandingWhatsAppClick,
+} from "@/lib/analytics/conversion-events";
 import { contactDetails, restaurantLocation } from "@/lib/config/site";
 
 interface QuickAction {
@@ -12,6 +17,7 @@ interface QuickAction {
   href: string;
   external?: boolean;
   emphasis?: boolean;
+  tracking?: "call" | "whatsapp" | "directions";
   icon: React.ReactNode;
 }
 
@@ -41,6 +47,7 @@ const ACTIONS: QuickAction[] = [
     id: "call",
     label: "Call",
     href: `tel:${contactDetails.primaryPhoneTel}`,
+    tracking: "call",
     icon: (
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.86 19.86 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.86 19.86 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z" />
@@ -52,6 +59,7 @@ const ACTIONS: QuickAction[] = [
     label: "WhatsApp",
     href: whatsappHref,
     external: true,
+    tracking: "whatsapp",
     icon: (
       <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
         <path d="M17.5 14.4c-.3-.1-1.6-.8-1.9-.9-.3-.1-.4-.1-.6.1-.2.3-.6.9-.8 1-.1.2-.3.2-.5.1-1.4-.7-2.3-1.3-3.2-2.9-.2-.4 0-.4.3-.7.1-.1.3-.4.4-.5.1-.2.1-.3 0-.5-.1-.1-.6-1.4-.8-1.9-.2-.5-.5-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.3 0 1.3 1 2.6 1.1 2.8.1.2 1.9 3 4.7 4.2 1.8.7 2.5.8 3.3.7.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2z" />
@@ -63,6 +71,7 @@ const ACTIONS: QuickAction[] = [
     label: "Directions",
     href: directionsHref,
     external: true,
+    tracking: "directions",
     icon: (
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0Z" />
@@ -74,6 +83,20 @@ const ACTIONS: QuickAction[] = [
 
 export function MobileQuickBar() {
   const pathname = usePathname() ?? "/";
+
+  const handleTrackedAction = (action: QuickAction) => {
+    if (action.tracking === "call") {
+      trackLandingCallClick("quick_bar");
+      return;
+    }
+    if (action.tracking === "whatsapp") {
+      trackLandingWhatsAppClick("quick_bar");
+      return;
+    }
+    if (action.tracking === "directions") {
+      trackLandingDirectionsClick("quick_bar");
+    }
+  };
 
   // Hide on admin / auth surfaces — chrome is already hidden there but be safe.
   if (
@@ -137,6 +160,7 @@ export function MobileQuickBar() {
                   : {})}
                 key={action.id}
                 aria-label={action.label}
+                onClick={() => handleTrackedAction(action)}
                 flex="1"
                 display="block"
                 style={{ textDecoration: "none" }}

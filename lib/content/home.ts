@@ -1,5 +1,7 @@
 import { siteConfig } from "@/lib/config/site";
 
+const ratingLabel = siteConfig.rating.toFixed(1);
+
 export interface HomeTrustItem {
   label: string;
   detail: string;
@@ -52,7 +54,7 @@ export const homeContent: HomeContent = {
   hero: {
     eyebrow: "Dennistoun · Alexandra Parade · Halal certified pizzeria",
     headline: "Authentic Italian sourdough pizza in Glasgow's East End.",
-    body: `Hand-stretched 24-hour sourdough, stone-baked in Dennistoun and fully halal certified. Order pizza delivery across Glasgow's East End (up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}, £3.99 flat fee), collect from ${siteConfig.address}, or book one of our ${siteConfig.tablesCount} tables on Alexandra Parade.`,
+    body: `Hand-stretched 24-hour sourdough, stone-baked in Dennistoun and fully halal certified. Order pizza delivery across Glasgow's East End (up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}, delivery from £1.95), collect from ${siteConfig.address}, or book one of our ${siteConfig.tablesCount} tables on Alexandra Parade.`,
     primaryCta: { label: "Order now", href: "/menu" },
     secondaryCta: { label: "View the menu", href: "/menu" },
     tertiaryCta: { label: `Call ${siteConfig.phone}`, href: `tel:${siteConfig.phoneTel}` },
@@ -61,9 +63,9 @@ export const homeContent: HomeContent = {
     { label: "24hr Sourdough", detail: "Handmade daily, never frozen." },
     { label: "Trained in Italy", detail: "Three years with master pizzaiolos." },
     { label: "Halal Certified", detail: "All meats halal." },
-    { label: "Open till Midnight Fri & Sat", detail: "11am every day, late at weekends." },
-    { label: `${siteConfig.rating}★ from ${siteConfig.reviewCount}+ reviews`, detail: "Google and Uber Eats." },
-    { label: "Glasgow East End delivery", detail: `£3.99 flat fee, up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}.` },
+    { label: "Open till Midnight Fri-Sat", detail: "11am every day, late at weekends." },
+    { label: `${ratingLabel}★ from ${siteConfig.reviewCount}+ reviews`, detail: "Google reviews." },
+    { label: "Glasgow East End delivery", detail: `From £1.95, up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}.` },
   ],
   pizzas: [
     {
@@ -98,7 +100,7 @@ export const homeContent: HomeContent = {
     {
       id: "delivery",
       title: "Delivery",
-      body: `Hot, properly boxed and on your doorstep. Free in G31 (Dennistoun), £3.99 anywhere else inside ${siteConfig.deliveryRadiusMiles} miles.`,
+      body: `Hot, properly boxed and on your doorstep. Delivery from £1.95, based on your distance (up to ${siteConfig.deliveryRadiusMiles} miles).`,
       ctaLabel: "Start a delivery order",
       ctaHref: "/menu",
     },
@@ -112,7 +114,7 @@ export const homeContent: HomeContent = {
     {
       id: "dine-in",
       title: "Dine in",
-      body: `Just ${siteConfig.tablesCount} tables on Alexandra Parade. Open till 11pm Sun–Thu and midnight Fri & Sat.`,
+      body: `Just ${siteConfig.tablesCount} tables on Alexandra Parade. Open till 11pm Mon-Thu and Sunday, midnight Fri-Sat.`,
       ctaLabel: "Book a table",
       ctaHref: "/book",
     },
@@ -123,7 +125,7 @@ export const homeContent: HomeContent = {
     paragraphs: [
       "Born from Syrian and Swedish roots, our chefs bring 20 years of experience and a fusion of cultures to Alexandra Parade. Trained in Italy, sharpened in Dubai, perfected in Glasgow.",
       "Every pizza starts with our sourdough — a 24-hour rise with natural yeast that gives it that real craft flavour. It would last 4 or 5 days in the fridge, but it'll never get that far.",
-      "Real dough, real toppings, real prices. Any pizza can be stuffed crust — 12\" +£2, 16\" +£5. Gluten free available. Delivery or collection, straight from our stone oven to your door.",
+      "Real dough, real toppings, real prices. Stuffed crust supplement: 12\" +£3, 16\" +£4 where available. Gluten free available. Delivery or collection, straight from our stone oven to your door.",
     ],
   },
   finalCta: {

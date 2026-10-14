@@ -46,7 +46,7 @@ export default async function MenuPage() {
       title="Sourdough pizzas, kebabs, burgers and more"
       description={
         shopStatus.isOpen
-          ? "24-hour sourdough, hand-stretched, stone-baked. Halal certified. Full kitchen — pizzas, grills, shawarma, smashburgers, pasta and sides. £3.99 flat delivery across Glasgow's East End (up to 4 miles)."
+          ? "24-hour sourdough, hand-stretched, stone-baked. Halal certified. Full kitchen — pizzas, grills, shawarma, smashburgers, pasta and sides. £4.49 flat delivery across Glasgow's East End (up to 4 miles)."
           : "Browse the full menu now. Online ordering is paused until the next opening time, then delivery and collection will reopen."
       }
       heroBackgroundImage="/legacy/pizza-making-poster.jpg"

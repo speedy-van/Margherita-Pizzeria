@@ -28,7 +28,7 @@ export interface OgTextContent {
   title: string;
   /** Optional supporting line shown beneath the title. */
   subtitle?: string;
-  /** Show the 4.9★ from 74 reviews badge. */
+  /** Show the Google rating badge. */
   showRating?: boolean;
 }
 
@@ -47,6 +47,7 @@ function el(
  */
 export function renderOgImage(content: OgTextContent): ImageResponse {
   const { eyebrow, title, subtitle, showRating } = content;
+  const ratingLabel = siteConfig.rating.toFixed(1);
 
   const container: CSSProps = {
     width: "100%",
@@ -164,7 +165,7 @@ export function renderOgImage(content: OgTextContent): ImageResponse {
       showRating
         ? el(
             ratingBadge,
-            `${siteConfig.rating} / 5 - ${siteConfig.reviewCount} Google reviews`,
+            `${ratingLabel} / 5 - ${siteConfig.reviewCount} Google reviews`,
           )
         : el(
             { display: "flex", color: ogColors.amber, fontSize: 24 },

@@ -40,21 +40,21 @@ export function PageShell({
             padding={hasHeroBackground ? { base: 5, md: 8 } : undefined}
             backgroundImage={
               hasHeroBackground
-                ? `linear-gradient(to bottom right, rgba(0, 0, 0, 0.74), rgba(0, 0, 0, 0.48)), url(${heroBackgroundImage})`
+                ? `linear-gradient(to bottom right, rgba(252, 251, 247, 0.88), rgba(252, 251, 247, 0.66)), url(${heroBackgroundImage})`
                 : undefined
             }
             backgroundSize={hasHeroBackground ? "cover" : undefined}
             backgroundPosition={hasHeroBackground ? heroBackgroundPosition : undefined}
             backgroundRepeat={hasHeroBackground ? "no-repeat" : undefined}
             borderWidth={hasHeroBackground ? "1px" : undefined}
-            borderColor={hasHeroBackground ? "whiteAlpha.300" : undefined}
+            borderColor={hasHeroBackground ? "rgba(0,0,0,0.12)" : undefined}
           >
             {eyebrow ? (
               <Text
                 textTransform="uppercase"
                 letterSpacing="0.2em"
                 fontSize="xs"
-                color={hasHeroBackground ? "whiteAlpha.900" : "brand.fg"}
+                color={hasHeroBackground ? "fg.default" : "brand.fg"}
                 fontWeight="700"
               >
                 {eyebrow}
@@ -65,13 +65,13 @@ export function PageShell({
               fontFamily="heading"
               fontSize={{ base: "3xl", md: "5xl" }}
               lineHeight="1.1"
-              color={hasHeroBackground ? "white" : "fg.default"}
+              color="fg.default"
             >
               {title}
             </Heading>
             {description ? (
               <Text
-                color={hasHeroBackground ? "whiteAlpha.900" : "fg.muted"}
+                color="fg.muted"
                 fontSize={{ base: "md", md: "lg" }}
                 maxW="60ch"
               >

@@ -46,18 +46,18 @@ function PizzaCard({ pizza, index, reduceMotion }: PizzaCardProps) {
       transition={{ duration: 0.55, delay: index * 0.08, ease: "easeOut" }}
       bg="bg.subtle"
       borderWidth="1px"
-      borderColor="border"
+      borderColor="rgba(164,189,167,0.78)"
       borderRadius="2xl"
       overflow="hidden"
       display="flex"
       flexDirection="column"
       position="relative"
-      boxShadow="0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px rgba(0,0,0,0.35)"
+      boxShadow="0 0 0 1px rgba(164,189,167,0.24), 0 0 18px rgba(164,189,167,0.28), 0 12px 32px rgba(0,0,0,0.08)"
       css={{
         "&:hover": {
-          borderColor: "rgba(230,126,34,0.45)",
+          borderColor: "rgba(164,189,167,1)",
           boxShadow:
-            "0 1px 0 rgba(255,255,255,0.06) inset, 0 18px 44px rgba(192,57,43,0.25)",
+            "0 0 0 1px rgba(164,189,167,0.42), 0 0 30px rgba(164,189,167,0.5), 0 18px 44px rgba(0,0,0,0.12)",
         },
         transition: "border-color .2s ease, box-shadow .2s ease",
       }}
@@ -104,7 +104,7 @@ function PizzaCard({ pizza, index, reduceMotion }: PizzaCardProps) {
             fontSize="xs"
             fontWeight="800"
             letterSpacing="0.04em"
-            boxShadow="0 6px 18px rgba(192,57,43,0.45)"
+            boxShadow="0 6px 18px rgba(164,189,167,0.45)"
           >
             From {priceFrom}
           </Box>
@@ -115,15 +115,15 @@ function PizzaCard({ pizza, index, reduceMotion }: PizzaCardProps) {
           bottom={3}
           left={3}
           gap={1.5}
-          bg="rgba(13,13,13,0.7)"
+          bg="rgba(252,251,247,0.82)"
           borderWidth="1px"
-          borderColor="rgba(255,255,255,0.15)"
+          borderColor="rgba(0,0,0,0.14)"
           borderRadius="full"
           paddingInline={2.5}
           paddingBlock={1}
           backdropFilter="blur(8px)"
         >
-          <Text color="white" fontSize="2xs" fontWeight="700" letterSpacing="0.08em">
+          <Text color="fg.default" fontSize="2xs" fontWeight="700" letterSpacing="0.08em">
             HALAL · 24H SOURDOUGH
           </Text>
         </HStack>
@@ -227,7 +227,7 @@ export function PizzaShowcase() {
                 bg="brand.solid"
                 color="brand.contrast"
                 _hover={{ bg: "brand.emphasized" }}
-                boxShadow="0 12px 28px rgba(192,57,43,0.35)"
+                boxShadow="0 12px 28px rgba(164,189,167,0.35)"
               >
                 See the full menu →
               </Button>

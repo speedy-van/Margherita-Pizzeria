@@ -29,7 +29,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.98 }}
       borderWidth="1px"
-      borderColor="border"
+      borderColor="rgba(164,189,167,0.78)"
       borderRadius="xl"
       bg="bg.subtle"
       overflow="hidden"
@@ -37,6 +37,15 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       flexDirection="column"
       height="100%"
       opacity={disabled ? 0.7 : 1}
+      boxShadow="0 0 0 1px rgba(164,189,167,0.24), 0 0 18px rgba(164,189,167,0.28), 0 14px 34px rgba(0,0,0,0.08)"
+      css={{
+        "&:hover": {
+          borderColor: "rgba(164,189,167,1)",
+          boxShadow:
+            "0 0 0 1px rgba(164,189,167,0.42), 0 0 28px rgba(164,189,167,0.46), 0 18px 42px rgba(0,0,0,0.12)",
+        },
+        transition: "border-color .2s ease, box-shadow .2s ease, opacity .2s ease",
+      }}
     >
       <Box
         position="relative"
@@ -47,7 +56,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={item.imageUrl ?? resolvedImageUrl}
+          src={resolvedImageUrl}
           alt={item.name}
           // eslint-disable-next-line react/forbid-component-props
           style={{

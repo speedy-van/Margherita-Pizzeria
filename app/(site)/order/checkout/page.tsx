@@ -1,5 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { OrderPageClient } from "@/components/order/OrderPageClient";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
@@ -9,7 +10,11 @@ import { ShopClosedScreen } from "@/components/ui/ShopClosedScreen";
 import { siteConfig } from "@/lib/config/site";
 import { db } from "@/lib/db/client";
 import { timeSlots } from "@/lib/db/schema";
-import { getOrderSettings } from "@/lib/orders/pricing";
+import {
+  DEFAULT_ORDER_SETTINGS,
+  getOrderSettings,
+  type OrderSettings,
+} from "@/lib/orders/pricing";
 import type { CollectionSlotOption } from "@/lib/orders/types";
 import { createPageMetadata } from "@/lib/seo/metadata";
 import {
@@ -30,41 +35,78 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 interface LoadedData {
-  settings: {
-    acceptingOnlineOrders: boolean;
-    collectionOpen: boolean;
-    deliveryOpen: boolean;
-    busyMode: "normal" | "busy" | "very_busy";
-    customerMessage: string;
-    minDeliveryOrderPence: number;
-    deliveryFeePence: number;
-  };
+  settings: ClientOrderSettings;
   slots: CollectionSlotOption[];
   openingHours: OpeningHours;
   initialShopStatus: ShopStatus;
 }
 
-async function loadOrderPageData(): Promise<LoadedData> {
-  const [settings, slotRows, openingHours] = await Promise.all([
-    getOrderSettings(),
-    db
+type ClientOrderSettings = Pick<
+  OrderSettings,
+  | "acceptingOnlineOrders"
+  | "collectionOpen"
+  | "deliveryOpen"
+  | "busyMode"
+  | "customerMessage"
+  | "minDeliveryOrderPence"
+  | "deliveryFeePence"
+>;
+
+const CHECKOUT_SETTINGS_UNAVAILABLE_MESSAGE =
+  "Online ordering is temporarily unavailable. Please call the restaurant to order.";
+
+function toClientOrderSettings(settings: OrderSettings): ClientOrderSettings {
+  return {
+    acceptingOnlineOrders: settings.acceptingOnlineOrders,
+    collectionOpen: settings.collectionOpen,
+    deliveryOpen: settings.deliveryOpen,
+    busyMode: settings.busyMode,
+    customerMessage: settings.customerMessage,
+    minDeliveryOrderPence: settings.minDeliveryOrderPence,
+    deliveryFeePence: settings.deliveryFeePence,
+  };
+}
+
+async function loadCheckoutSettings(): Promise<ClientOrderSettings> {
+  try {
+    return toClientOrderSettings(await getOrderSettings());
+  } catch (err: unknown) {
+    console.error("[/order/checkout] getOrderSettings failed:", err);
+    return {
+      ...toClientOrderSettings(DEFAULT_ORDER_SETTINGS),
+      acceptingOnlineOrders: false,
+      collectionOpen: false,
+      deliveryOpen: false,
+      customerMessage: CHECKOUT_SETTINGS_UNAVAILABLE_MESSAGE,
+    };
+  }
+}
+
+async function loadCollectionSlots(): Promise<CollectionSlotOption[]> {
+  try {
+    const slotRows = await db
       .select({ id: timeSlots.id, time: timeSlots.time })
       .from(timeSlots)
       .where(and(eq(timeSlots.type, "collection"), eq(timeSlots.active, true)))
-      .orderBy(asc(timeSlots.time)),
+      .orderBy(asc(timeSlots.time));
+
+    return slotRows.map((s) => ({ id: s.id, time: s.time }));
+  } catch (err: unknown) {
+    console.error("[/order/checkout] collection slots failed:", err);
+    return [];
+  }
+}
+
+async function loadOrderPageData(): Promise<LoadedData> {
+  const [settings, slots, openingHours] = await Promise.all([
+    loadCheckoutSettings(),
+    loadCollectionSlots(),
     getOpeningHours(),
   ]);
+
   return {
-    settings: {
-      acceptingOnlineOrders: settings.acceptingOnlineOrders,
-      collectionOpen: settings.collectionOpen,
-      deliveryOpen: settings.deliveryOpen,
-      busyMode: settings.busyMode,
-      customerMessage: settings.customerMessage,
-      minDeliveryOrderPence: settings.minDeliveryOrderPence,
-      deliveryFeePence: settings.deliveryFeePence,
-    },
-    slots: slotRows.map((s) => ({ id: s.id, time: s.time })),
+    settings,
+    slots,
     openingHours,
     initialShopStatus: computeShopStatus(new Date(), openingHours),
   };
@@ -76,7 +118,6 @@ export default async function OrderCheckoutPage() {
   try {
     data = await loadOrderPageData();
   } catch (err: unknown) {
-    // eslint-disable-next-line no-console
     console.error("[/order/checkout] loadOrderPageData failed:", err);
     fetchError = true;
   }
@@ -114,12 +155,14 @@ export default async function OrderCheckoutPage() {
           initialShopStatus={data.initialShopStatus}
         />
       ) : (
-        <OrderPageClient
-          initialSettings={data.settings}
-          collectionSlots={data.slots}
-          openingHours={data.openingHours}
-          initialShopStatus={data.initialShopStatus}
-        />
+        <Suspense>
+          <OrderPageClient
+            initialSettings={data.settings}
+            collectionSlots={data.slots}
+            openingHours={data.openingHours}
+            initialShopStatus={data.initialShopStatus}
+          />
+        </Suspense>
       )}
     </PageShell>
   );

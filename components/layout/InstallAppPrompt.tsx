@@ -209,12 +209,12 @@ export function InstallAppPrompt() {
         right={{ base: 3, md: "auto" }}
         bottom={{ base: "calc(env(safe-area-inset-bottom) + 84px)", md: 6 }}
         maxW={{ md: "380px" }}
-        bg="rgba(13,13,13,0.96)"
-        color="white"
+        bg="#FCFBF7"
+        color="fg.default"
         borderWidth="1px"
-        borderColor="rgba(230,126,34,0.55)"
+        borderColor="rgba(0,0,0,0.14)"
         borderRadius="2xl"
-        boxShadow="0 18px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(230,126,34,0.15)"
+        boxShadow="0 18px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.05)"
         padding={{ base: 4, md: 5 }}
         backdropFilter="blur(8px)"
         role="dialog"
@@ -229,8 +229,8 @@ export function InstallAppPrompt() {
             display="flex"
             alignItems="center"
             justifyContent="center"
-            bg="linear-gradient(135deg, #E67E22 0%, #C0392B 100%)"
-            boxShadow="0 6px 18px rgba(192,57,43,0.45)"
+            bg="#A4BDA7"
+            boxShadow="0 6px 18px rgba(164,189,167,0.45)"
             fontSize="22px"
             aria-hidden
           >
@@ -238,17 +238,17 @@ export function InstallAppPrompt() {
           </Box>
           <Stack gap={1} flex={1}>
             <Text fontWeight="700" fontSize="md" lineHeight="1.25">
-              Install Margherita
+              {showIosHint ? "Save to your home screen" : "Install Margherita"}
             </Text>
-            <Text fontSize="sm" color="whiteAlpha.800" lineHeight="1.45">
+            <Text fontSize="sm" color="fg.muted" lineHeight="1.45">
               {showIosHint
-                ? "Tap the Share button, then \u201cAdd to Home Screen\u201d for one-tap re-orders."
+                ? "Tap the \u2191 Share icon in Safari \u2192 \u201cAdd to Home Screen\u201d \u2192 Add. One tap to re-order next time."
                 : "Add us to your home screen for one-tap re-orders, faster loading and offline browsing."}
             </Text>
           </Stack>
           <CloseButton
             size="sm"
-            color="whiteAlpha.800"
+            color="fg.muted"
             onClick={dismiss}
             aria-label="Dismiss install prompt"
           />
@@ -258,8 +258,8 @@ export function InstallAppPrompt() {
           <Button
             size="sm"
             variant="ghost"
-            color="whiteAlpha.800"
-            _hover={{ bg: "whiteAlpha.200" }}
+            color="fg.default"
+            _hover={{ bg: "rgba(0,0,0,0.06)" }}
             onClick={dismiss}
           >
             Not now

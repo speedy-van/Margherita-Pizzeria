@@ -2,6 +2,7 @@
 
 import { Box } from "@chakra-ui/react";
 
+import { trackLandingWhatsAppClick } from "@/lib/analytics/conversion-events";
 import { contactDetails } from "@/lib/config/site";
 
 const WHATSAPP_NUMBER = contactDetails.secondaryPhoneTel.replace(/[^0-9]/g, "");
@@ -23,6 +24,7 @@ export function WhatsAppFab({ bottomOffset = 0 }: WhatsAppFabProps) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => trackLandingWhatsAppClick("whatsapp_fab")}
       aria-label="Chat on WhatsApp"
       position="fixed"
       right={{ base: 4, md: 6 }}

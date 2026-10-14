@@ -41,18 +41,18 @@ const config = defineConfig({
     "@keyframes logo-neon-pulse": {
       "0%, 100%": {
         boxShadow:
-          "0 0 6px #C0392B, 0 0 14px #C0392B, 0 0 28px rgba(192,57,43,0.55)",
+          "0 0 6px #A4BDA7, 0 0 14px #A4BDA7, 0 0 28px rgba(164,189,167,0.52)",
       },
       "50%": {
         boxShadow:
-          "0 0 10px #E04B36, 0 0 22px #E04B36, 0 0 44px rgba(224,75,54,0.7)",
+          "0 0 10px #A4BDA7, 0 0 22px #8EA891, 0 0 44px rgba(164,189,167,0.6)",
       },
     },
     "@keyframes logo-m-flash": {
       "0%, 55%, 100%": {
         opacity: 1,
         textShadow:
-          "0 0 4px #fff, 0 0 10px #C0392B, 0 0 18px #C0392B, 0 0 28px #C0392B",
+          "0 0 4px #fff, 0 0 10px #A4BDA7, 0 0 18px #A4BDA7, 0 0 28px #A4BDA7",
       },
       "60%, 70%, 80%": {
         opacity: 0.15,
@@ -61,7 +61,7 @@ const config = defineConfig({
       "65%, 75%, 85%": {
         opacity: 1,
         textShadow:
-          "0 0 6px #fff, 0 0 14px #E04B36, 0 0 26px #E04B36",
+          "0 0 6px #fff, 0 0 14px #A4BDA7, 0 0 26px #8EA891",
       },
     },
     "@keyframes radar-ring": {
@@ -92,16 +92,16 @@ const config = defineConfig({
       },
       colors: {
         brand: {
-          50: { value: "#FBEAE7" },
-          100: { value: "#F2C2BA" },
-          200: { value: "#E69A8C" },
-          300: { value: "#D9725F" },
-          400: { value: "#CC4A32" },
+          50: { value: "#F3F7F4" },
+          100: { value: "#E8EFE9" },
+          200: { value: "#D7E3D8" },
+          300: { value: "#C3D3C5" },
+          400: { value: "#AFC5B1" },
           500: { value: brandColors.crimson },
-          600: { value: "#A03124" },
-          700: { value: "#80271D" },
-          800: { value: "#5F1E16" },
-          900: { value: "#3F140E" },
+          600: { value: "#8EA891" },
+          700: { value: "#718C74" },
+          800: { value: "#536A56" },
+          900: { value: "#344438" },
         },
         amber: {
           500: { value: brandColors.amber },
@@ -112,8 +112,8 @@ const config = defineConfig({
         surface: {
           base: { value: brandColors.nearBlack },
           raised: { value: brandColors.charcoal },
-          subtle: { value: "#222222" },
-          border: { value: "#2A2A2A" },
+          subtle: { value: "#F4F1E8" },
+          border: { value: "#D8D2C4" },
         },
         ink: {
           50: { value: brandColors.offWhite },
@@ -139,9 +139,9 @@ const config = defineConfig({
         brand: {
           solid: { value: "{colors.brand.500}" },
           contrast: { value: "{colors.ink.50}" },
-          fg: { value: "{colors.brand.300}" },
-          muted: { value: "{colors.brand.800}" },
-          subtle: { value: "{colors.brand.900}" },
+          fg: { value: "{colors.ink.50}" },
+          muted: { value: "{colors.brand.400}" },
+          subtle: { value: "{colors.brand.100}" },
           emphasized: { value: "{colors.brand.600}" },
           focusRing: { value: "{colors.brand.500}" },
         },

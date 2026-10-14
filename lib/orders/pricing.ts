@@ -9,6 +9,7 @@ import type {
   OrderPricingBreakdown,
   ValidatedOrderItem,
 } from "@/lib/orders/types";
+export { tieredDeliveryFeePence } from "@/lib/orders/delivery-fees";
 
 export interface OrderSettings {
   acceptingOnlineOrders: boolean;
@@ -36,6 +37,18 @@ const SETTING_KEYS = {
 
 const DEFAULT_PREP_TIME_MINUTES = 25;
 const DEFAULT_DELIVERY_TIME_MINUTES = 45;
+
+export const DEFAULT_ORDER_SETTINGS: OrderSettings = {
+  acceptingOnlineOrders: true,
+  collectionOpen: true,
+  deliveryOpen: true,
+  busyMode: "normal",
+  minDeliveryOrderPence: siteConfig.defaultMinDeliveryOrderPence,
+  deliveryFeePence: siteConfig.defaultDeliveryFeePence,
+  prepTimeMinutes: DEFAULT_PREP_TIME_MINUTES,
+  deliveryTimeMinutes: DEFAULT_DELIVERY_TIME_MINUTES,
+  customerMessage: "",
+};
 
 function toPositiveInt(value: unknown, fallback: number): number {
   if (typeof value === "number" && Number.isFinite(value)) {

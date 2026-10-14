@@ -86,7 +86,7 @@ export function TrustStrip() {
         position="absolute"
         inset={0}
         opacity={0.4}
-        backgroundImage="radial-gradient(ellipse at 0% 50%, rgba(230,126,34,0.06), transparent 45%), radial-gradient(ellipse at 100% 50%, rgba(192,57,43,0.06), transparent 45%)"
+        backgroundImage="radial-gradient(ellipse at 0% 50%, rgba(164,189,167,0.08), transparent 45%), radial-gradient(ellipse at 100% 50%, rgba(164,189,167,0.08), transparent 45%)"
       />
       <Container maxW="container.xl" position="relative">
         <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} gap={{ base: 5, md: 6 }}>
@@ -100,10 +100,10 @@ export function TrustStrip() {
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
-                bg="linear-gradient(135deg, rgba(230,126,34,0.16), rgba(192,57,43,0.16))"
+                bg="rgba(164,189,167,0.22)"
                 color="brand.fg"
                 borderWidth="1px"
-                borderColor="rgba(230,126,34,0.25)"
+                borderColor="rgba(164,189,167,0.38)"
               >
                 <Icon name={ICON_FOR_INDEX[i % ICON_FOR_INDEX.length] ?? "star"} />
               </Box>

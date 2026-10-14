@@ -19,12 +19,14 @@ import {
   getOpeningHours,
 } from "@/lib/utils/shop-hours";
 
-export const dynamic = "force-dynamic";
+// Revalidate every 60 seconds — allows Vercel edge caching for Google's speed
+// crawl while keeping discounts and menu previews fresh enough for real use.
+export const revalidate = 60;
 
 export const metadata: Metadata = createPageMetadata({
   title: "Sourdough Pizza, Halal, in Dennistoun | Margherita Pizzeria",
   description:
-    "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour stone-baked dough, halal certified. £3.99 flat delivery across Glasgow's East End (up to 4 miles). Order online or call +44 7746 870341.",
+    "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour stone-baked dough, halal certified. £4.49 flat delivery across Glasgow's East End (up to 4 miles). Order online or call +44 7746 870341.",
   path: "/",
   keywords: getKeywordsForPath("/"),
 });

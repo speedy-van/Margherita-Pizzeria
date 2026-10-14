@@ -24,7 +24,6 @@ export type DishKind =
   | "pizza-seafood"
   | "pizza-meat"
   | "pizza-generic"
-  | "calzone"
   | "burger"
   | "wrap"
   | "hoagie"
@@ -61,16 +60,20 @@ const PHOTO_OVERRIDES: Array<{ test: RegExp; photo: string }> = [
   { test: /\bcapricciosa\b/, photo: "/legacy/capricciosa-real.jpg" },
   { test: /\bmexican\b/, photo: "/legacy/mexican-real.jpg" },
   { test: /\bdonner\b/, photo: "/legacy/donner-real.jpg" },
-  { test: /\bcalzone\b/, photo: "/legacy/calzone-real.jpg" },
   { test: /\baltono\b/, photo: "/legacy/altono-real.jpg" },
   { test: /\bbolognese\b/, photo: "/legacy/bolognese-real.jpg" },
   { test: /\bspicy chicken\b.*pizza|pizza.*spicy chicken/, photo: "/legacy/spicy-chicken-real.jpg" },
+  { test: /\bcalzone\b/, photo: "/menu/calzone.jpg" },
   { test: /\bgolden box\b/, photo: "/legacy/deal-golden-box.jpg" },
   { test: /\bkids? deal\b/, photo: "/legacy/deal-kids.jpg" },
   { test: /\blunch\b.*deal|deal.*\blunch\b/, photo: "/legacy/deal-lunch.jpg" },
   { test: /\bweekend\b.*pizza|family\b.*deal/, photo: "/legacy/deal-weekend-pizza.jpg" },
   { test: /\bsmashburger double\b/, photo: "/legacy/deal-smashburger-double.jpg" },
   { test: /\bsmashburger\b/, photo: "/legacy/deal-smashburger.jpg" },
+  { test: /\bchicken shish tikka\b.*\b2 skewers\b/, photo: "/menu/chicken-shish-tikka-2-skewers.jpg" },
+  { test: /\bgarlic bread\b/, photo: "/menu/garlic-bread.jpg" },
+  { test: /\bchoco[-\s]?banana\b/, photo: "/menu/choco-banana.jpg" },
+  { test: /\bcheesecake\b/, photo: "/menu/cheesecake-slice.webp" },
 ];
 
 /** Brand palette presets. Tuned to the existing brand tokens. */
@@ -95,11 +98,8 @@ const RULES: Array<{ test: RegExp; meta: Omit<DishMeta, "photo"> }> = [
   { test: /\bbbq\b|king crown/, meta: { kind: "pizza-bbq", palette: PALETTE.ember, category: "Stone-baked pizza" } },
   { test: /\bfour cheese\b|\bcheese pizza\b|\bfour formaggi\b/, meta: { kind: "pizza-cheese", palette: PALETTE.sand, category: "Stone-baked pizza" } },
   { test: /\bseafood\b|\bmarinara\b|\baltono\b/, meta: { kind: "pizza-seafood", palette: PALETTE.ocean, category: "Stone-baked pizza" } },
-  { test: /\b(bolognese|mexican|capricciosa|vesuvio|donner|spicy chicken|syrian|philadelphia|sausage|four seasons|egg pizza|glasgow|stuffed crust)\b/, meta: { kind: "pizza-meat", palette: PALETTE.ember, category: "Stone-baked pizza" } },
+  { test: /\b(bolognese|mexican|capricciosa|vesuvio|donner|chicken pizza|spicy chicken|syrian|philadelphia|sausage|four seasons|egg pizza|glasgow|stuffed crust)\b/, meta: { kind: "pizza-meat", palette: PALETTE.ember, category: "Stone-baked pizza" } },
   { test: /\bpizza\b/, meta: { kind: "pizza-generic", palette: PALETTE.tomato, category: "Stone-baked pizza" } },
-
-  // Calzone
-  { test: /\bcalzone\b/, meta: { kind: "calzone", palette: PALETTE.sand, category: "Folded sourdough" } },
 
   // Burgers
   { test: /\b(smashburger|burger)\b/, meta: { kind: "burger", palette: PALETTE.ember, category: "Smashburger" } },

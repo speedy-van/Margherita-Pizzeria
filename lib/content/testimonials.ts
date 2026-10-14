@@ -1,6 +1,6 @@
 /**
  * Customer testimonials carried over from margheritapizzeria.co.uk.
- * 4.2★ across Google and Uber Eats (62+ reviews).
+ * Google Business Profile currently shows 5.0★ from 113 reviews.
  */
 
 export interface Testimonial {
@@ -86,11 +86,11 @@ export interface DeliveryZone {
 }
 
 export const deliveryZones: ReadonlyArray<DeliveryZone> = [
-  { postcode: "G31", area: "Dennistoun", feeLabel: "FREE", free: true },
-  { postcode: "G4", area: "Gallowgate", feeLabel: "£3.99", free: false },
-  { postcode: "G40", area: "Bridgeton", feeLabel: "£3.99", free: false },
-  { postcode: "G32", area: "Shettleston", feeLabel: "£3.99", free: false },
-  { postcode: "G32", area: "Carntyne", feeLabel: "£3.99", free: false },
-  { postcode: "G33", area: "Riddrie", feeLabel: "£3.99", free: false },
-  { postcode: "G21", area: "Springburn", feeLabel: "£3.99", free: false },
+  { postcode: "G31", area: "Dennistoun", feeLabel: "£1.95", free: false },
+  { postcode: "G4", area: "Gallowgate", feeLabel: "£2.25", free: false },
+  { postcode: "G40", area: "Bridgeton", feeLabel: "£2.25", free: false },
+  { postcode: "G32", area: "Shettleston", feeLabel: "£3.35", free: false },
+  { postcode: "G32", area: "Carntyne", feeLabel: "£3.35", free: false },
+  { postcode: "G33", area: "Riddrie", feeLabel: "£3.35", free: false },
+  { postcode: "G21", area: "Springburn", feeLabel: "£4.49", free: false },
 ];

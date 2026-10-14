@@ -17,6 +17,16 @@ import {
 } from "@/lib/analytics/gtag";
 
 export type LandingSource = "order_now" | "collection";
+export type EngagementSource =
+  | LandingSource
+  | "quick_bar"
+  | "header"
+  | "footer"
+  | "whatsapp_fab"
+  | "directions_page"
+  | "contact_page"
+  | "order_page"
+  | "closed_screen";
 
 export interface PurchaseConversionItem {
   [key: string]: string | number;
@@ -38,8 +48,16 @@ export function trackLandingBookClick(source: LandingSource): boolean {
   return gtagEvent("landing_book_click", { source });
 }
 
-export function trackLandingDirectionsClick(source: LandingSource): boolean {
+export function trackLandingDirectionsClick(source: EngagementSource): boolean {
   return gtagEvent("landing_directions_click", { source });
+}
+
+export function trackLandingCallClick(source: EngagementSource): boolean {
+  return gtagEvent("landing_call_click", { source });
+}
+
+export function trackLandingWhatsAppClick(source: EngagementSource): boolean {
+  return gtagEvent("landing_whatsapp_click", { source });
 }
 
 export function trackOrderLandingConversion(
@@ -56,20 +74,17 @@ export function trackOrderLandingConversion(
     adsSent = googleAdsConversion(label, { transactionId, value, currency: "GBP" });
   }
 
-  const ga4Sent = gtagEvent("purchase", {
+  // Use a non-standard event name so GA4 does not auto-import it into Ads
+  // as a second conversion action alongside the dedicated label above.
+  // GA4 still records the event for reporting; Ads only sees the label fire.
+  const ga4Sent = gtagEvent("order_confirmed", {
     transaction_id: transactionId ?? null,
     value: typeof value === "number" ? value : null,
     currency: "GBP",
     items: items ?? [],
   });
 
-  const legacySent = gtagEvent("landing_conversion", {
-    type: "order",
-    transaction_id: transactionId ?? null,
-    value: typeof value === "number" ? value : null,
-  });
-
-  return label ? adsSent : ga4Sent || legacySent;
+  return label ? adsSent : ga4Sent;
 }
 
 export function trackCollectionLandingConversion(

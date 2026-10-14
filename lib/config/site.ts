@@ -1,13 +1,13 @@
 import { env } from "@/lib/env";
 
 export const brandColors = {
-  crimson: "#C0392B",
-  amber: "#E67E22",
-  nearBlack: "#0D0D0D",
-  charcoal: "#1A1A1A",
-  offWhite: "#F5F5F0",
-  warmGrey: "#A0998C",
-  forest: "#27AE60",
+  crimson: "#A4BDA7",
+  amber: "#A4BDA7",
+  nearBlack: "#FCFBF7",
+  charcoal: "#FFFFFF",
+  offWhite: "#000000",
+  warmGrey: "#262626",
+  forest: "#A4BDA7",
 } as const;
 
 export const restaurantLocation = {
@@ -17,8 +17,8 @@ export const restaurantLocation = {
   postcode: "G31 3BU",
   country: "GB",
   fullAddress: "652 Alexandra Parade, Dennistoun, Glasgow, G31 3BU",
-  latitude: 55.8717,
-  longitude: -4.2169,
+  latitude: 55.8629933,
+  longitude: -4.2115166,
 } as const;
 
 export const contactDetails = {
@@ -39,12 +39,12 @@ export const socialLinks = {
 
 export const deliveryRules = {
   radiusMiles: 4,
-  freePostcodes: ["G31"] as const,
-  outsideFeePence: 399,
+  freePostcodes: [] as const,
+  outsideFeePence: 449,
   defaultMinOrderPence: 1000,
   // The live delivery fee is stored in the `settings` table (key: delivery_fee_pence)
   // and is the source of truth. This is only the seed/fallback value.
-  defaultDeliveryFeePence: 0,
+  defaultDeliveryFeePence: 449,
 } as const;
 
 export const businessHoursFallback = [
@@ -68,7 +68,7 @@ export const siteConfig = {
   legacyDomain: "margheritapizzeria.co.uk",
   url: normalizeSiteUrl(env.NEXT_PUBLIC_SITE_URL || "https://www.margheritapizza.uk"),
   description:
-    "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour cold-proved dough, stone-baked and halal certified. Pizza delivery across Glasgow's East End for a £3.99 flat fee (up to 4 miles).",
+    "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour cold-proved dough, stone-baked and halal certified. Pizza delivery across Glasgow's East End from £1.95 (up to 4 miles, fee based on distance).",
   tagline: "Sourdough. Hand-stretched. Stone oven.",
   address: restaurantLocation.fullAddress,
   city: restaurantLocation.city,
@@ -79,8 +79,8 @@ export const siteConfig = {
   secondaryPhone: contactDetails.secondaryPhone,
   secondaryPhoneTel: contactDetails.secondaryPhoneTel,
   halalCertified: true,
-  rating: 4.2,
-  reviewCount: 62,
+  rating: 5.0,
+  reviewCount: 113,
   priceRange: "££",
   currency: "GBP" as const,
   locale: "en-GB" as const,

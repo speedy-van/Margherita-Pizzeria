@@ -2,6 +2,7 @@ import { Box, Button, HStack, Stack } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 
+import { TrackedAnchor } from "@/components/analytics/TrackedAnchor";
 import { DirectionsMap } from "@/components/directions/DirectionsMap";
 import { DirectionsRouteCards } from "@/components/directions/DirectionsRouteCards";
 import { ParkingInfo } from "@/components/directions/ParkingInfo";
@@ -45,16 +46,18 @@ export default function DirectionsPage() {
         <DirectionsMap />
 
         <HStack gap={3} flexWrap="wrap">
-          <NextLink
+          <TrackedAnchor
             href={directionsContent.mapSearchUrl}
             target="_blank"
             rel="noopener noreferrer"
+            trackingEvent="directions"
+            trackingSource="directions_page"
             style={{ textDecoration: "none" }}
           >
             <Button bg="brand.solid" color="brand.contrast" _hover={{ bg: "brand.emphasized" }}>
               Open in maps
             </Button>
-          </NextLink>
+          </TrackedAnchor>
           <NextLink href="/order" style={{ textDecoration: "none" }}>
             <Button variant="outline" borderColor="border" color="fg.default" _hover={{ bg: "bg.subtle" }}>
               Order for collection

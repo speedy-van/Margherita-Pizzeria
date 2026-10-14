@@ -33,6 +33,7 @@ import { PaymentMethodStep } from "@/components/order/PaymentMethodStep";
 import { getStoredOrderAttribution } from "@/lib/analytics/ad-attribution";
 import { homeContent } from "@/lib/content/home";
 import { useMenuCart } from "@/hooks/useMenuCart";
+import type { PublicMenuResponse } from "@/lib/menu/types";
 import type {
   CollectionSlotOption,
   CreateOrderInput,
@@ -40,6 +41,7 @@ import type {
   OrderMode,
   PaymentMethod,
 } from "@/lib/orders/types";
+import { tieredDeliveryFeePence } from "@/lib/orders/delivery-fees";
 import {
   computeShopStatus,
   formatClosedMessage,
@@ -94,7 +96,28 @@ export function OrderPageClient({
     search.get("mode") === "collection" ? "collection" : "delivery";
 
   const cart = useMenuCart();
+  const { reconcileWithMenu } = cart;
   const [shopStatus, setShopStatus] = useState<ShopStatus>(initialShopStatus);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function reconcileCart(): Promise<void> {
+      try {
+        const res = await fetch("/api/menu", { cache: "no-store" });
+        const json = (await res.json()) as
+          | { ok: true; data: PublicMenuResponse }
+          | { ok: false };
+        if (cancelled || !json.ok) return;
+        reconcileWithMenu(json.data.categories.flatMap((category) => category.items));
+      } catch {
+        // Checkout still validates against the server before an order is placed.
+      }
+    }
+    void reconcileCart();
+    return () => {
+      cancelled = true;
+    };
+  }, [reconcileWithMenu]);
 
   useEffect(() => {
     const tick = () => setShopStatus(computeShopStatus(new Date(), openingHours));
@@ -127,21 +150,22 @@ export function OrderPageClient({
       }
     : undefined;
 
+  const activeDeliveryFeePence = useMemo(() => {
+    if (mode !== "delivery") return 0;
+    if (validated?.milesFromRestaurant != null) {
+      return tieredDeliveryFeePence(validated.milesFromRestaurant);
+    }
+    return initialSettings.deliveryFeePence;
+  }, [mode, validated, initialSettings.deliveryFeePence]);
+
   const totalPreviewPence = useMemo(() => {
-    const gross =
-      cart.subtotalPence +
-      (mode === "delivery" ? initialSettings.deliveryFeePence : 0);
+    const gross = cart.subtotalPence + activeDeliveryFeePence;
     const discountPence = Math.max(
       0,
       Math.min(discount?.discountPence ?? 0, gross),
     );
     return gross - discountPence;
-  }, [
-    cart.subtotalPence,
-    mode,
-    initialSettings.deliveryFeePence,
-    discount,
-  ]);
+  }, [cart.subtotalPence, activeDeliveryFeePence, discount]);
 
   const deliveryBelowMin =
     mode === "delivery" &&
@@ -495,7 +519,7 @@ export function OrderPageClient({
         <OrderTotalSummary
           orderMode={mode}
           subtotalPence={cart.subtotalPence}
-          deliveryFeePence={initialSettings.deliveryFeePence}
+          deliveryFeePence={activeDeliveryFeePence}
           minDeliveryOrderPence={initialSettings.minDeliveryOrderPence}
           discountPence={discount?.discountPence ?? 0}
           discountCode={discount?.code ?? null}

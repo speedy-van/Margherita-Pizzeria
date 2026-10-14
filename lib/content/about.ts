@@ -37,7 +37,7 @@ export const aboutContent: AboutContent = {
     paragraphs: [
       "Born from Syrian and Swedish roots, our chefs bring 20 years of experience and a fusion of cultures to Alexandra Parade. Trained in Italy, sharpened in Dubai, perfected in Glasgow.",
       "Our head chef spent three years in Italy mastering stone-baked pizza. Sourdough rises 24 hours with natural yeast — patient, alive, and easier to digest. It would last four or five days in the fridge, but it'll never get that far.",
-      "This isn't fast food with an Italian name. Real dough, real toppings, real prices. Any pizza can be stuffed crust — 12\" +£2, 16\" +£5. Delivery or collection, straight from our stone oven to your door.",
+      "This isn't fast food with an Italian name. Real dough, real toppings, real prices. Stuffed crust supplement: 12\" +£3, 16\" +£4 where available. Delivery or collection, straight from our stone oven to your door.",
       `Whether you're picking up a couple of boxes after work, having pizza delivered to the flat, or settling in at one of our ${siteConfig.tablesCount} tables, our promise is the same: real craft, real flavour, halal certified, made for the East End.`,
     ],
   },
@@ -65,12 +65,12 @@ export const aboutContent: AboutContent = {
     {
       id: "local",
       title: "Made for the East End",
-      body: `£3.99 flat delivery across the East End — Dennistoun, Gallowgate, Bridgeton, Shettleston, Carntyne, Riddrie and Springburn (up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}).`,
+      body: `Delivery from £1.95 across the East End — Dennistoun, Gallowgate, Bridgeton, Shettleston, Carntyne, Riddrie and Springburn (up to ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}, fee based on distance).`,
     },
     {
       id: "honest",
       title: "Honest pricing",
-      body: "Real dough, real toppings, real prices. Student 10% off orders over £10. Kids deal £4.99 every day.",
+      body: "Real dough, real toppings, real prices. Student 10% off orders over £10. Kids deal £5.99 every day.",
     },
   ],
   visitCta: {

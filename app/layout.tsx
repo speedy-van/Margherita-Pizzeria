@@ -30,7 +30,7 @@ const inter = Inter({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0D0D0D",
+  themeColor: "#FCFBF7",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -67,6 +67,13 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? {
+        verification: {
+          google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+        },
+      }
+    : {}),
   formatDetection: {
     telephone: false,
     address: false,

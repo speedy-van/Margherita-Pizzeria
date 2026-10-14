@@ -23,19 +23,19 @@ export function LocalStoryBand() {
         backgroundPosition="center"
         backgroundRepeat="no-repeat"
       />
-      {/* Dark overlay for legibility */}
+      {/* Light overlay for the required black text. */}
       <Box
         aria-hidden
         position="absolute"
         inset={0}
-        backgroundImage="linear-gradient(105deg, rgba(10,8,6,0.86) 0%, rgba(10,8,6,0.72) 45%, rgba(10,8,6,0.3) 100%)"
+        backgroundImage="linear-gradient(105deg, rgba(252,251,247,0.94) 0%, rgba(252,251,247,0.84) 45%, rgba(252,251,247,0.62) 100%)"
       />
       {/* Brand color wash on top */}
       <Box
         aria-hidden
         position="absolute"
         inset={0}
-        backgroundImage="radial-gradient(ellipse at 100% 0%, rgba(230,126,34,0.18), transparent 50%), radial-gradient(ellipse at 0% 100%, rgba(192,57,43,0.18), transparent 55%)"
+        backgroundImage="radial-gradient(ellipse at 100% 0%, rgba(164,189,167,0.18), transparent 50%), radial-gradient(ellipse at 0% 100%, rgba(164,189,167,0.18), transparent 55%)"
       />
       <Container maxW="container.xl" position="relative">
         <Stack gap={5} maxW="48rem">
@@ -51,7 +51,7 @@ export function LocalStoryBand() {
           <Heading
             as="h2"
             size={{ base: "xl", md: "2xl" }}
-            color="white"
+            color="fg.default"
             fontFamily="heading"
           >
             {story.heading}
@@ -59,7 +59,7 @@ export function LocalStoryBand() {
           {story.paragraphs.map((p) => (
             <Text
               key={p.slice(0, 18)}
-              color="whiteAlpha.900"
+              color="fg.muted"
               fontSize={{ base: "md", md: "lg" }}
             >
               {p}

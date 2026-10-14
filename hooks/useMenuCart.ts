@@ -7,6 +7,7 @@ import {
   type AddToCartInput,
   type CartItem,
   type CartState,
+  type PublicMenuItem,
 } from "@/lib/menu/types";
 
 const STORAGE_KEY = "margherita-menu-cart-v1";
@@ -18,6 +19,7 @@ interface UseMenuCartReturn {
   increase: (menuItemId: string) => void;
   decrease: (menuItemId: string) => void;
   clear: () => void;
+  reconcileWithMenu: (menuItems: PublicMenuItem[]) => void;
   totalQuantity: number;
   subtotalPence: number;
   isHydrated: boolean;
@@ -189,6 +191,41 @@ export function useMenuCart(): UseMenuCartReturn {
 
   const clear = useCallback(() => setItems([]), []);
 
+  const reconcileWithMenu = useCallback((menuItems: PublicMenuItem[]) => {
+    if (!menuItems.length) return;
+    const liveById = new Map(menuItems.map((item) => [item.id, item]));
+    setItems((prev) => {
+      let changed = false;
+      const next: CartItem[] = [];
+      for (const item of prev) {
+        const live = liveById.get(item.menuItemId);
+        if (!live || !live.available) {
+          changed = true;
+          continue;
+        }
+        const reconciled: CartItem = {
+          menuItemId: live.id,
+          name: live.name,
+          quantity: item.quantity,
+          unitPricePence: live.pricePence,
+          totalPence: live.pricePence * item.quantity,
+          allergens: live.allergens,
+          imageUrl: live.imageUrl,
+        };
+        if (
+          item.name !== reconciled.name ||
+          item.unitPricePence !== reconciled.unitPricePence ||
+          item.totalPence !== reconciled.totalPence ||
+          item.imageUrl !== reconciled.imageUrl
+        ) {
+          changed = true;
+        }
+        next.push(reconciled);
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
   const totalQuantity = useMemo(
     () => items.reduce((sum, i) => sum + i.quantity, 0),
     [items],
@@ -205,6 +242,7 @@ export function useMenuCart(): UseMenuCartReturn {
     increase,
     decrease,
     clear,
+    reconcileWithMenu,
     totalQuantity,
     subtotalPence,
     isHydrated,

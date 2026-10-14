@@ -1,17 +1,12 @@
-import { restaurantLocation, siteConfig } from "@/lib/config/site";
+import {
+  businessHoursFallback,
+  contactDetails,
+  restaurantLocation,
+  siteConfig,
+} from "@/lib/config/site";
 import type { FaqItem } from "@/lib/content/faq";
 import type { PublicMenuResponse } from "@/lib/menu/types";
 import { getCanonicalUrl } from "@/lib/seo/routes";
-
-/**
- * Schema.org JSON-LD builders. Each returns a plain JSON-serialisable object
- * suitable for embedding inside a `<script type="application/ld+json">` tag.
- *
- * Rules:
- *  - Only use facts confirmed by the brief.
- *  - No telephone, no geo coordinates, no opening hours, no fake reviews.
- *  - Aggregate rating uses the confirmed Google figures (4.9 / 74).
- */
 
 export type JsonLdObject = Record<string, unknown>;
 
@@ -28,6 +23,23 @@ function buildAddress(): JsonLdObject {
     postalCode: restaurantLocation.postcode,
     addressCountry: restaurantLocation.country,
   };
+}
+
+function buildGeo(): JsonLdObject {
+  return {
+    "@type": "GeoCoordinates",
+    latitude: restaurantLocation.latitude,
+    longitude: restaurantLocation.longitude,
+  };
+}
+
+function buildOpeningHours(): JsonLdObject[] {
+  return businessHoursFallback.map((h) => ({
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: `https://schema.org/${h.day}`,
+    opens: h.open,
+    closes: h.close === "00:00" ? "23:59" : h.close,
+  }));
 }
 
 function buildAggregateRating(): JsonLdObject {
@@ -62,15 +74,23 @@ export function buildRestaurantSchema(): JsonLdObject {
     name: siteConfig.name,
     url: getCanonicalUrl("/"),
     description: siteConfig.description,
+    telephone: contactDetails.primaryPhone,
     servesCuisine: siteConfig.servesCuisine,
     priceRange: siteConfig.priceRange,
     currenciesAccepted: siteConfig.currency,
     paymentAccepted: "Cash, Credit Card",
     address: buildAddress(),
+    geo: buildGeo(),
+    openingHoursSpecification: buildOpeningHours(),
     areaServed: buildAreaServed(),
     aggregateRating: buildAggregateRating(),
     hasMenu: getCanonicalUrl("/menu"),
     acceptsReservations: true,
+    sameAs: [
+      "https://www.facebook.com/p/Margherita-pizzeria-61584527125021/",
+      "https://www.instagram.com/margherita.pizzaria1/",
+      "https://www.tiktok.com/@margherita.pizzaria1",
+    ],
   };
 }
 
@@ -82,9 +102,12 @@ export function buildLocalBusinessSchema(): JsonLdObject {
     name: siteConfig.name,
     url: getCanonicalUrl("/"),
     description: siteConfig.description,
+    telephone: contactDetails.primaryPhone,
     priceRange: siteConfig.priceRange,
     currenciesAccepted: siteConfig.currency,
     address: buildAddress(),
+    geo: buildGeo(),
+    openingHoursSpecification: buildOpeningHours(),
     areaServed: buildAreaServed(),
     aggregateRating: buildAggregateRating(),
   };

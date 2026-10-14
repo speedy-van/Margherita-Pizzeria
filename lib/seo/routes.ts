@@ -29,7 +29,7 @@ export const publicSeoRoutes: readonly PublicSeoRoute[] = [
     changeFrequency: "weekly",
     title: "Sourdough Pizza, Halal, in Dennistoun | Margherita Pizzeria",
     description:
-      "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour cold-proved dough, stone-baked and halal certified. Pizza delivery across Glasgow's East End (£3.99, up to 4 miles), collection and dine-in.",
+      "Authentic Italian sourdough pizza on Alexandra Parade, Dennistoun. 24-hour cold-proved dough, stone-baked and halal certified. Pizza delivery across Glasgow's East End (£4.49, up to 4 miles), collection and dine-in.",
   },
   {
     path: "/menu",
@@ -37,7 +37,7 @@ export const publicSeoRoutes: readonly PublicSeoRoute[] = [
     changeFrequency: "weekly",
     title: "Menu · Sourdough Pizza, Kebab, Burgers | Margherita Pizzeria",
     description:
-      "Stone-baked sourdough pizzas, kebabs, burgers, pasta and grill. Halal certified. Delivery across Dennistoun and Glasgow's East End for a £3.99 flat fee (up to 4 miles).",
+      "Stone-baked sourdough pizzas, kebabs, burgers, pasta and grill. Halal certified. Delivery across Dennistoun and Glasgow's East End for a £4.49 flat fee (up to 4 miles).",
   },
   {
     path: "/order",
@@ -45,7 +45,7 @@ export const publicSeoRoutes: readonly PublicSeoRoute[] = [
     changeFrequency: "daily",
     title: "Order Online · Halal Sourdough Pizza Glasgow | Margherita Pizzeria",
     description:
-      "Order halal sourdough pizza, kebabs and burgers online from Margherita Pizzeria. £3.99 flat delivery across Dennistoun and Glasgow's East End (up to 4 miles).",
+      "Order halal sourdough pizza, kebabs and burgers online from Margherita Pizzeria. £4.49 flat delivery across Dennistoun and Glasgow's East End (up to 4 miles).",
   },
   {
     path: "/book",
@@ -53,7 +53,7 @@ export const publicSeoRoutes: readonly PublicSeoRoute[] = [
     changeFrequency: "daily",
     title: "Book a Table · Alexandra Parade | Margherita Pizzeria",
     description:
-      "Book one of six tables at Margherita Pizzeria, 652 Alexandra Parade, Dennistoun. Open till 11pm Sun–Thu and midnight Fri & Sat.",
+      "Book one of six tables at Margherita Pizzeria, 652 Alexandra Parade, Dennistoun. Open till 11pm Mon-Thu and Sunday, midnight Fri-Sat.",
   },
   {
     path: "/about",

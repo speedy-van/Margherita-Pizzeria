@@ -69,17 +69,18 @@ export function LiveStatusCard({ openingHours }: LiveStatusCardProps) {
       role="status"
       aria-live="polite"
       position="fixed"
-      bottom={{ base: 4, md: 6 }}
-      right={{ base: 4, md: 6 }}
+      bottom={{ base: 4, md: 7 }}
+      right={{ base: 4, md: 7 }}
       zIndex={1200}
-      maxW={{ base: "calc(100vw - 2rem)", sm: "20rem" }}
-      bg="bg.panel"
-      color="fg"
+      width={{ base: "calc(100vw - 2rem)", sm: "23rem" }}
+      maxW="23rem"
+      bg="#FFFDF8"
+      color="#211B16"
       borderWidth="1px"
-      borderColor="border"
-      borderRadius="xl"
-      boxShadow="0 18px 40px rgba(10,8,6,0.28)"
-      padding={4}
+      borderColor="rgba(164,189,167,0.9)"
+      borderRadius="lg"
+      boxShadow="0 0 0 1px rgba(164,189,167,0.34), 0 0 30px rgba(164,189,167,0.5), 0 18px 44px rgba(10,8,6,0.16), 0 1px 0 rgba(255,255,255,0.9) inset"
+      padding={{ base: 4, md: 5 }}
       css={{
         "@media print": { display: "none" },
         "@keyframes mpPulse": {
@@ -97,14 +98,26 @@ export function LiveStatusCard({ openingHours }: LiveStatusCardProps) {
         },
       }}
     >
-      <HStack align="flex-start" justify="space-between" gap={3}>
-        <Stack gap={2} flex={1}>
-          <HStack gap={2}>
+      <HStack align="flex-start" justify="space-between" gap={4}>
+        <Stack gap={3} flex={1} minW={0}>
+          <HStack
+            gap={2}
+            align="center"
+            bg={status.isOpen ? "rgba(39,174,96,0.12)" : "rgba(160,153,140,0.16)"}
+            borderWidth="1px"
+            borderColor={status.isOpen ? "rgba(39,174,96,0.28)" : "rgba(160,153,140,0.28)"}
+            borderRadius="full"
+            paddingInline={3}
+            paddingBlock={1.5}
+            width="fit-content"
+            maxW="100%"
+          >
             <Box
               aria-hidden
-              width="10px"
-              height="10px"
+              width="11px"
+              height="11px"
               borderRadius="full"
+              flexShrink={0}
               bg={dotColor}
               css={
                 status.isOpen
@@ -117,13 +130,24 @@ export function LiveStatusCard({ openingHours }: LiveStatusCardProps) {
                   : undefined
               }
             />
-            <Text fontWeight="700" fontSize="sm">
+            <Text
+              fontWeight="800"
+              fontSize={{ base: "sm", md: "md" }}
+              lineHeight="1.2"
+              color="#211B16"
+              textWrap="balance"
+            >
               {headline}
             </Text>
           </HStack>
-          <Text fontSize="xs" color="fg.muted" lineHeight="1.5">
-            Typical prep 18–22 min · 🛵 {formatGBPFromPence(deliveryRules.outsideFeePence)} flat
-            delivery across Glasgow East End
+          <Text
+            fontSize={{ base: "sm", md: "sm" }}
+            color="#5B5047"
+            lineHeight="1.55"
+            fontWeight="600"
+          >
+            Typical prep 18–22 min · {formatGBPFromPence(deliveryRules.outsideFeePence)} flat
+            delivery within 4 miles
           </Text>
           <NextLink
             href={ctaHref}
@@ -131,14 +155,15 @@ export function LiveStatusCard({ openingHours }: LiveStatusCardProps) {
             style={{
               display: "inline-block",
               marginTop: 2,
-              background: "#C0392B",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "0.875rem",
-              padding: "8px 14px",
+              background: "#A4BDA7",
+              color: "#000",
+              fontWeight: 800,
+              fontSize: "0.95rem",
+              padding: "11px 16px",
               borderRadius: 8,
               textAlign: "center",
               textDecoration: "none",
+              boxShadow: "0 10px 22px rgba(164,189,167,0.34)",
             }}
           >
             {ctaLabel}
@@ -146,11 +171,16 @@ export function LiveStatusCard({ openingHours }: LiveStatusCardProps) {
         </Stack>
         <IconButton
           aria-label="Dismiss"
-          size="xs"
+          size="sm"
           variant="ghost"
           onClick={dismiss}
+          color="#211B16"
+          bg="rgba(33,27,22,0.06)"
+          borderRadius="full"
+          flexShrink={0}
+          _hover={{ bg: "rgba(33,27,22,0.12)" }}
         >
-          <Box as="span" aria-hidden fontSize="md" lineHeight="1">
+          <Box as="span" aria-hidden fontSize="lg" lineHeight="1" fontWeight="800">
             ×
           </Box>
         </IconButton>

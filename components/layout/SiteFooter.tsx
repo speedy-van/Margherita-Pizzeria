@@ -4,6 +4,7 @@ import { Badge, Box, Container, Heading, HStack, SimpleGrid, Stack, Text } from 
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 
+import { trackLandingCallClick } from "@/lib/analytics/conversion-events";
 import {
   contactDetails,
   restaurantLocation,
@@ -115,7 +116,12 @@ export function SiteFooter({ openingHours }: SiteFooterProps) {
             </Text>
             <Stack gap={1}>
               <Text asChild color="fg.default" fontWeight="600">
-                <a href={`tel:${contactDetails.primaryPhoneTel}`}>{contactDetails.primaryPhone}</a>
+                <a
+                  href={`tel:${contactDetails.primaryPhoneTel}`}
+                  onClick={() => trackLandingCallClick("footer")}
+                >
+                  {contactDetails.primaryPhone}
+                </a>
               </Text>
               <Text color="fg.muted" fontSize="sm">{contactDetails.whatsappLabel}</Text>
             </Stack>

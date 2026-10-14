@@ -504,19 +504,6 @@ function drawGenericDish(name: string): string {
   `;
 }
 
-// ─────────── primitive: calzone ───────────
-
-function drawCalzone(): string {
-  const cx = W / 2;
-  const cy = H / 2 + 40;
-  return `
-    <path d="M ${cx - 320} ${cy + 60} q 0 -280 320 -280 q 320 0 320 280 q -160 80 -320 80 q -160 0 -320 -80 Z" fill="#C99757" stroke="#6C3F1B" stroke-width="6"/>
-    <path d="M ${cx - 250} ${cy - 20} q 50 -40 100 -10" stroke="#6C3F1B" stroke-width="4" fill="none"/>
-    <path d="M ${cx - 50} ${cy - 70} q 50 -40 100 -10" stroke="#6C3F1B" stroke-width="4" fill="none"/>
-    <path d="M ${cx + 150} ${cy - 30} q 50 -40 100 -10" stroke="#6C3F1B" stroke-width="4" fill="none"/>
-  `;
-}
-
 // ─────────── primitive: deal box ───────────
 
 function drawDeal(): string {
@@ -546,8 +533,6 @@ function drawByKind(name: string, meta: DishMeta): string {
     case "pizza-meat":
     case "pizza-generic":
       return drawPizza(name, pizzaSpecFor(meta.kind));
-    case "calzone":
-      return drawCalzone();
     case "burger":
       return drawBurger(name);
     case "wrap":

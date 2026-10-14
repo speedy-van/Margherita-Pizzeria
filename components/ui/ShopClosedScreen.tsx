@@ -4,6 +4,7 @@ import { Box, Heading, HStack, SimpleGrid, Stack, Text } from "@chakra-ui/react"
 import NextLink from "next/link";
 import { useEffect, useState } from "react";
 
+import { trackLandingCallClick } from "@/lib/analytics/conversion-events";
 import { contactDetails } from "@/lib/config/site";
 import {
   computeShopStatus,
@@ -58,7 +59,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
         width="100%"
         textAlign="center"
         fontVariantNumeric="tabular-nums"
-        boxShadow="0 4px 14px rgba(192,57,43,0.35)"
+        boxShadow="0 4px 14px rgba(164,189,167,0.35)"
       >
         <Text
           as="span"
@@ -248,6 +249,7 @@ export function ShopClosedScreen({
         <Box asChild>
           <a
             href={`tel:${contactDetails.primaryPhoneTel}`}
+            onClick={() => trackLandingCallClick("closed_screen")}
             style={{
               display: "inline-block",
               padding: "0.5rem 1.25rem",

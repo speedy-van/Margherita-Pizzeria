@@ -23,7 +23,7 @@ const ICONS: Record<HomeServiceCard["id"], string> = {
 };
 
 const ACCENTS: Record<HomeServiceCard["id"], { from: string; to: string; ring: string }> = {
-  delivery: { from: "#C0392B", to: "#E67E22", ring: "rgba(230,126,34,0.35)" },
+  delivery: { from: "#A4BDA7", to: "#8EA891", ring: "rgba(164,189,167,0.35)" },
   collection: { from: "#0EA5E9", to: "#22D3EE", ring: "rgba(14,165,233,0.35)" },
   "dine-in": { from: "#8B5CF6", to: "#EC4899", ring: "rgba(139,92,246,0.35)" },
 };
@@ -37,15 +37,20 @@ function ServiceCard({ service, reduceMotion }: { service: HomeServiceCard; redu
       position="relative"
       bg="bg.subtle"
       borderWidth="1px"
-      borderColor="border"
+      borderColor="rgba(164,189,167,0.78)"
       borderRadius="2xl"
       padding={{ base: 6, md: 7 }}
       display="flex"
       flexDirection="column"
       overflow="hidden"
+      boxShadow="0 0 0 1px rgba(164,189,167,0.24), 0 0 18px rgba(164,189,167,0.24), 0 12px 30px rgba(0,0,0,0.08)"
       css={{
-        "&:hover": { borderColor: accent.ring },
-        transition: "border-color .2s ease",
+        "&:hover": {
+          borderColor: "rgba(164,189,167,1)",
+          boxShadow:
+            "0 0 0 1px rgba(164,189,167,0.42), 0 0 30px rgba(164,189,167,0.46), 0 18px 40px rgba(0,0,0,0.12)",
+        },
+        transition: "border-color .2s ease, box-shadow .2s ease",
       }}
     >
       {/* accent corner glow */}

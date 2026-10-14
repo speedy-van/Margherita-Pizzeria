@@ -35,19 +35,19 @@ export function HomeCtaBand() {
         backgroundPosition="center"
         backgroundRepeat="no-repeat"
       />
-      {/* Dark gradient overlay for legibility */}
+      {/* Light gradient overlay for the required black text. */}
       <Box
         aria-hidden
         position="absolute"
         inset={0}
-        backgroundImage="linear-gradient(105deg, rgba(10,8,6,0.86) 0%, rgba(10,8,6,0.72) 45%, rgba(10,8,6,0.3) 100%)"
+        backgroundImage="linear-gradient(105deg, rgba(252,251,247,0.94) 0%, rgba(252,251,247,0.84) 45%, rgba(252,251,247,0.62) 100%)"
       />
       {/* Brand color wash */}
       <Box
         aria-hidden
         position="absolute"
         inset={0}
-        backgroundImage="radial-gradient(ellipse at 100% 0%, rgba(230,126,34,0.18), transparent 50%), radial-gradient(ellipse at 0% 100%, rgba(192,57,43,0.18), transparent 55%)"
+        backgroundImage="radial-gradient(ellipse at 100% 0%, rgba(164,189,167,0.18), transparent 50%), radial-gradient(ellipse at 0% 100%, rgba(164,189,167,0.18), transparent 55%)"
       />
       <Container maxW="container.xl" position="relative">
         <Stack gap={5} maxW="46rem">
@@ -63,12 +63,12 @@ export function HomeCtaBand() {
           <Heading
             as="h2"
             size={{ base: "xl", md: "2xl" }}
-            color="white"
+            color="fg.default"
             fontFamily="heading"
           >
             {cta.heading}
           </Heading>
-          <Text color="whiteAlpha.900" fontSize={{ base: "md", md: "lg" }}>
+          <Text color="fg.muted" fontSize={{ base: "md", md: "lg" }}>
             {cta.body}
           </Text>
           <HStack gap={3} flexWrap="wrap">
@@ -86,9 +86,9 @@ export function HomeCtaBand() {
               <Button
                 size="lg"
                 variant="outline"
-                borderColor="whiteAlpha.700"
-                color="white"
-                _hover={{ bg: "whiteAlpha.200" }}
+                borderColor="rgba(0,0,0,0.34)"
+                color="fg.default"
+                _hover={{ bg: "rgba(0,0,0,0.06)" }}
               >
                 {cta.secondary.label}
               </Button>

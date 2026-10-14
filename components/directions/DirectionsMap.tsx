@@ -54,7 +54,7 @@ function createMarkerElement(): HTMLDivElement {
   dot.style.position = "absolute";
   dot.style.inset = "0";
   dot.style.borderRadius = "50%";
-  dot.style.background = "#C0392B";
+  dot.style.background = "#A4BDA7";
   dot.style.border = "2px solid #fff";
   dot.style.boxShadow = "0 2px 6px rgba(0,0,0,0.4)";
   wrap.appendChild(dot);
@@ -150,7 +150,7 @@ export function DirectionsMap() {
           position="absolute"
           inset={0}
           opacity={0.5}
-          backgroundImage="radial-gradient(circle at 30% 30%, rgba(192,57,43,0.25), transparent 55%), radial-gradient(circle at 80% 80%, rgba(230,126,34,0.18), transparent 60%), linear-gradient(135deg, #161210 0%, #1A1A1A 100%)"
+          backgroundImage="radial-gradient(circle at 30% 30%, rgba(164,189,167,0.25), transparent 55%), radial-gradient(circle at 80% 80%, rgba(164,189,167,0.18), transparent 60%), linear-gradient(135deg, #FCFBF7 0%, #F4F1E8 100%)"
         />
       )}
 

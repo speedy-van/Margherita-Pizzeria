@@ -58,6 +58,13 @@ export function MenuPageClient({
   const [closedAttempt, setClosedAttempt] = useState(false);
 
   const cart = useMenuCart();
+  const { reconcileWithMenu } = cart;
+
+  useEffect(() => {
+    reconcileWithMenu(
+      initialMenu.categories.flatMap((category) => category.items),
+    );
+  }, [reconcileWithMenu, initialMenu.categories]);
 
   useEffect(() => {
     const tick = () => setShopStatus(computeShopStatus(new Date(), openingHours));
@@ -168,9 +175,9 @@ export function MenuPageClient({
           <Box
             role="alert"
             borderWidth="1px"
-            borderColor="red.500"
-            bg="red.50"
-            color="red.900"
+            borderColor="rgba(0,0,0,0.14)"
+            bg="#FCFBF7"
+            color="fg.default"
             borderRadius="xl"
             padding={{ base: 4, md: 5 }}
           >
@@ -187,7 +194,7 @@ export function MenuPageClient({
             </Text>
             <Box
               borderTopWidth="1px"
-              borderColor="red.200"
+              borderColor="rgba(0,0,0,0.12)"
               paddingTop={3}
             >
               <Text fontSize="xs" fontWeight="semibold" textTransform="uppercase" letterSpacing="wide" mb={2}>
@@ -238,10 +245,7 @@ export function MenuPageClient({
         </HStack>
 
         <Box
-          position={{ base: "static", md: "sticky" }}
-          top={{ md: "86px" }}
-          zIndex={{ md: 20 }}
-          bg="bg.default"
+          bg="bg"
           borderWidth="1px"
           borderColor="border"
           borderRadius={{ base: "2xl", md: "xl" }}

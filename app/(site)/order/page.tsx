@@ -22,7 +22,7 @@ import { getCanonicalUrl } from "@/lib/seo/routes";
 export const metadata: Metadata = createPageMetadata({
   title: "Fresh Halal Pizza Delivered in Glasgow East End | Order Online",
   description:
-    "Stone-baked sourdough pizza, kebabs, burgers and wraps delivered to Glasgow's East End. £3.99 flat delivery fee. Order online from Margherita Pizzeria, Dennistoun.",
+    "Stone-baked sourdough pizza, kebabs, burgers and wraps delivered to Glasgow's East End. £4.49 flat delivery fee. Order online from Margherita Pizzeria, Dennistoun.",
   path: "/order",
   keywords: getKeywordsForPath("/order"),
 });
@@ -30,7 +30,7 @@ export const metadata: Metadata = createPageMetadata({
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const trustBadges = [
-  { icon: "bike", label: "£3.99 delivery" },
+  { icon: "bike", label: "£4.49 delivery" },
   { icon: "pound", label: "Flat fee within 4 miles" },
   { icon: "clock", label: "Open late" },
   { icon: "halal", label: "Halal certified" },
@@ -66,7 +66,7 @@ const featuredItems = [
 const fulfilment = [
   {
     title: "Delivery",
-    body: `Hot, halal sourdough pizza to your door within ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}. £3.99 flat delivery fee.`,
+    body: `Hot, halal sourdough pizza to your door within ${siteConfig.deliveryRadiusMiles} miles of ${siteConfig.postcode}. £4.49 flat delivery fee.`,
   },
   {
     title: "Collection",
@@ -221,7 +221,7 @@ export default function OrderLandingPage() {
           aria-hidden
           position="absolute"
           inset={0}
-          backgroundImage="radial-gradient(ellipse at 25% 60%, rgba(192,57,43,0.14), transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(230,126,34,0.09), transparent 50%)"
+          backgroundImage="radial-gradient(ellipse at 25% 60%, rgba(164,189,167,0.18), transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(164,189,167,0.12), transparent 50%)"
           pointerEvents="none"
         />
 
@@ -317,7 +317,7 @@ export default function OrderLandingPage() {
                 paddingInline={{ base: 3, md: 4 }}
                 paddingBlock={{ base: 2, md: 3 }}
                 borderWidth="1px"
-                borderColor="rgba(192,57,43,0.55)"
+                borderColor="rgba(164,189,167,0.65)"
                 borderRadius="xl"
                 bg="bg.canvas"
                 animation="logo-neon-pulse 2.8s ease-in-out infinite"
@@ -368,7 +368,7 @@ export default function OrderLandingPage() {
                 <Box
                   key={item.name}
                   borderWidth="1px"
-                  borderColor="rgba(192,57,43,0.55)"
+                  borderColor="rgba(164,189,167,0.65)"
                   borderRadius="xl"
                   bg="bg.subtle"
                   overflow="hidden"
@@ -398,7 +398,7 @@ export default function OrderLandingPage() {
                       <Box
                         display="inline-flex"
                         width="fit-content"
-                        bg="rgba(192,57,43,0.12)"
+                        bg="rgba(164,189,167,0.16)"
                         color="brand.fg"
                         borderRadius="full"
                         paddingInline={2}
@@ -517,7 +517,7 @@ export default function OrderLandingPage() {
                           inset={0}
                           borderRadius="lg"
                           borderWidth="1px"
-                          borderColor="rgba(192,57,43,0.65)"
+                          borderColor="rgba(164,189,167,0.65)"
                           animation="radar-ring 2s ease-out infinite"
                           pointerEvents="none"
                         />
@@ -527,7 +527,7 @@ export default function OrderLandingPage() {
                           inset={0}
                           borderRadius="lg"
                           borderWidth="1px"
-                          borderColor="rgba(192,57,43,0.65)"
+                          borderColor="rgba(164,189,167,0.65)"
                           animation="radar-ring 2s ease-out 0.8s infinite"
                           pointerEvents="none"
                         />
@@ -540,13 +540,13 @@ export default function OrderLandingPage() {
                       display="flex"
                       alignItems="center"
                       justifyContent="center"
-                      bg="linear-gradient(135deg, rgba(230,126,34,0.16), rgba(192,57,43,0.16))"
+                      bg="rgba(164,189,167,0.2)"
                       color="brand.fg"
                       borderWidth="1px"
                       borderColor={
                         point.icon === "location"
-                          ? "rgba(192,57,43,0.55)"
-                          : "rgba(230,126,34,0.25)"
+                          ? "rgba(164,189,167,0.65)"
+                          : "rgba(164,189,167,0.32)"
                       }
                     >
                       <Icon name={point.icon} />
@@ -605,7 +605,7 @@ export default function OrderLandingPage() {
           >
             <HStack justify="space-between" gap={4} flexWrap="wrap">
               <Text fontWeight="600" color="fg.default" fontSize="md">
-                Ready to order? £3.99 flat delivery fee within 4 miles.
+                Ready to order? £4.49 flat delivery fee within 4 miles.
               </Text>
               <HStack gap={3} flexShrink={0}>
                 <NextLink href="/menu" style={{ textDecoration: "none" }}>

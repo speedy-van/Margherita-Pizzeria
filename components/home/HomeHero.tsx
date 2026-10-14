@@ -18,6 +18,7 @@ import { homeContent } from "@/lib/content/home";
 const MotionStack = motion.create(Stack);
 const MotionText = motion.create(Text);
 const MotionBox = motion.create(Box);
+const ratingLabel = siteConfig.rating.toFixed(1);
 
 export interface HomeHeroProps {
   backgroundImageUrl?: string | null;
@@ -32,8 +33,8 @@ export interface HomeHeroProps {
 const HERO_BADGES = [
   { icon: "🍕", label: "24h Sourdough" },
   { icon: "✅", label: "Halal Certified" },
-  { icon: "🚴", label: "Free in G31" },
-  { icon: "⭐", label: `${siteConfig.rating} / 5` },
+  { icon: "🚴", label: "£4.49 delivery" },
+  { icon: "⭐", label: `${ratingLabel} / 5` },
 ] as const;
 
 export function HomeHero({
@@ -48,10 +49,8 @@ export function HomeHero({
   const resolvedPoster = backgroundImageUrl ?? posterSrc;
   const floatPizza = "/legacy/margherita-real.jpg";
 
-  const initial = reduceMotion
-    ? { opacity: 1, y: 0, filter: "blur(0px)" }
-    : { opacity: 0, y: 24, filter: "blur(8px)" };
-  const animate = { opacity: 1, y: 0, filter: "blur(0px)" };
+  const initial = reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 };
+  const animate = { opacity: 1, y: 0 };
 
   return (
     <Box
@@ -98,25 +97,12 @@ export function HomeHero({
         </Box>
       )}
 
-      {/* Cinematic dark + brand gradient overlay */}
+      {/* Light brand wash so text stays readable without softening the background. */}
       <Box
         aria-hidden
         position="absolute"
         inset={0}
-        backgroundImage="linear-gradient(180deg, rgba(13,13,13,0.55) 0%, rgba(13,13,13,0.82) 100%), radial-gradient(ellipse at 18% 0%, rgba(192,57,43,0.55), transparent 55%), radial-gradient(ellipse at 82% 100%, rgba(230,126,34,0.35), transparent 60%)"
-      />
-
-      {/* Grain */}
-      <Box
-        aria-hidden
-        position="absolute"
-        inset={0}
-        opacity={0.08}
-        mixBlendMode="overlay"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>\")",
-        }}
+        backgroundImage="linear-gradient(90deg, rgba(252,251,247,0.88) 0%, rgba(252,251,247,0.68) 44%, rgba(252,251,247,0.18) 100%), linear-gradient(180deg, rgba(252,251,247,0.18) 0%, rgba(252,251,247,0.04) 100%)"
       />
 
       {/* Floating pizza disc (decorative, right side, desktop only) */}
@@ -131,7 +117,7 @@ export function HomeHero({
           height={{ lg: "520px", xl: "620px" }}
           borderRadius="full"
           overflow="hidden"
-          boxShadow="0 40px 120px rgba(0,0,0,0.6), 0 0 0 8px rgba(245,245,240,0.08), 0 0 0 16px rgba(230,126,34,0.18)"
+          boxShadow="0 40px 120px rgba(0,0,0,0.24), 0 0 0 8px rgba(252,251,247,0.28), 0 0 0 16px rgba(164,189,167,0.22)"
           style={{
             translateY: "-50%",
           }}
@@ -183,7 +169,7 @@ export function HomeHero({
             <Text
               fontSize="xs"
               fontWeight="700"
-              color="whiteAlpha.900"
+              color="fg.default"
               textTransform="uppercase"
               letterSpacing="0.18em"
             >
@@ -213,19 +199,19 @@ export function HomeHero({
             letterSpacing="-0.02em"
             position="relative"
             display="inline-block"
-            backgroundImage="linear-gradient(110deg, #F5F5F0 0%, #F5F5F0 35%, #FFFFFF 47%, #E67E22 52%, #FFFFFF 57%, #F5F5F0 65%, #F5F5F0 100%)"
+            backgroundImage="none"
             backgroundSize="300% 100%"
             backgroundClip="text"
             style={{
               WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              WebkitTextFillColor: "#000000",
               backgroundPosition: "200% 0",
               animation: "hero-shimmer 5.5s linear infinite",
             }}
             css={{
               "@media (prefers-reduced-motion: reduce)": {
                 animation: "none",
-                WebkitTextFillColor: "#F5F5F0",
+                WebkitTextFillColor: "#000000",
               },
             }}
           >
@@ -236,7 +222,7 @@ export function HomeHero({
             fontSize={{ base: "md", md: "lg" }}
             maxW="44rem"
             fontWeight="medium"
-            color="whiteAlpha.900"
+            color="fg.muted"
           >
             {hero.body}
           </Text>
@@ -247,18 +233,17 @@ export function HomeHero({
               <HStack
                 key={b.label}
                 gap={1.5}
-                bg="rgba(255,255,255,0.08)"
+                bg="rgba(252,251,247,0.72)"
                 borderWidth="1px"
-                borderColor="rgba(255,255,255,0.18)"
+                borderColor="rgba(0,0,0,0.12)"
                 borderRadius="full"
                 paddingInline={3}
                 paddingBlock={1.5}
-                backdropFilter="blur(8px)"
               >
                 <Text fontSize="sm" aria-hidden>
                   {b.icon}
                 </Text>
-                <Text fontSize="xs" fontWeight="700" color="white">
+                <Text fontSize="xs" fontWeight="700" color="fg.default">
                   {b.label}
                 </Text>
               </HStack>
@@ -272,7 +257,7 @@ export function HomeHero({
                 bg="brand.solid"
                 color="brand.contrast"
                 _hover={{ bg: "brand.emphasized", transform: "translateY(-1px)" }}
-                boxShadow="0 12px 28px rgba(192,57,43,0.45)"
+                boxShadow="0 12px 28px rgba(164,189,167,0.42)"
                 transition="all 0.18s ease"
               >
                 {hero.primaryCta.label}
@@ -282,11 +267,10 @@ export function HomeHero({
               <Button
                 size="lg"
                 variant="outline"
-                borderColor="whiteAlpha.700"
-                color="white"
-                bg="whiteAlpha.100"
-                backdropFilter="blur(8px)"
-                _hover={{ bg: "whiteAlpha.300" }}
+                borderColor="rgba(0,0,0,0.34)"
+                color="fg.default"
+                bg="rgba(252,251,247,0.72)"
+                _hover={{ bg: "rgba(0,0,0,0.06)" }}
               >
                 {hero.secondaryCta.label}
               </Button>
@@ -295,8 +279,8 @@ export function HomeHero({
               <Button
                 size="lg"
                 variant="ghost"
-                color="white"
-                _hover={{ bg: "whiteAlpha.200" }}
+                color="fg.default"
+                _hover={{ bg: "rgba(0,0,0,0.06)" }}
               >
                 {hero.tertiaryCta.label}
               </Button>
@@ -309,7 +293,7 @@ export function HomeHero({
                 textTransform="uppercase"
                 letterSpacing="0.14em"
                 fontSize="xs"
-                color="whiteAlpha.800"
+                color="fg.muted"
                 fontWeight="700"
               >
                 Browse the menu now
@@ -325,26 +309,25 @@ export function HomeHero({
                       borderRadius="xl"
                       overflow="hidden"
                       borderWidth="1px"
-                      borderColor="rgba(192,57,43,0.72)"
-                      backgroundColor="rgba(13,13,13,0.55)"
-                      backdropFilter="blur(8px)"
+                      borderColor="rgba(164,189,167,0.78)"
+                      backgroundColor="rgba(252,251,247,0.82)"
                       minH="120px"
                       display="flex"
                       flexDirection="column"
                       justifyContent="flex-end"
                       position="relative"
-                      boxShadow="inset 0 0 0 1px rgba(255,120,104,0.35), 0 0 0 1px rgba(192,57,43,0.4), 0 0 24px rgba(192,57,43,0.45), 0 10px 24px rgba(0,0,0,0.35)"
+                      boxShadow="inset 0 0 0 1px rgba(255,255,255,0.45), 0 0 0 1px rgba(164,189,167,0.22), 0 0 18px rgba(164,189,167,0.26), 0 10px 24px rgba(0,0,0,0.1)"
                       _hover={{
                         transform: "translateY(-2px)",
-                        borderColor: "rgba(235,87,69,0.95)",
+                        borderColor: "rgba(164,189,167,1)",
                         boxShadow:
-                          "inset 0 0 0 1px rgba(255,150,132,0.45), 0 0 0 1px rgba(235,87,69,0.65), 0 0 34px rgba(235,87,69,0.62), 0 14px 28px rgba(0,0,0,0.42)",
+                          "inset 0 0 0 1px rgba(255,255,255,0.55), 0 0 0 1px rgba(164,189,167,0.42), 0 0 30px rgba(164,189,167,0.5), 0 14px 28px rgba(0,0,0,0.14)",
                       }}
                       transition="all 0.18s ease"
                       style={
                         category.imageUrl
                           ? {
-                              backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.72) 100%), url("${category.imageUrl.replace(/"/g, "%22")}")`,
+                              backgroundImage: `linear-gradient(180deg, rgba(252,251,247,0.18) 0%, rgba(252,251,247,0.86) 100%), url("${category.imageUrl.replace(/"/g, "%22")}")`,
                               backgroundSize: "cover",
                               backgroundPosition: "center",
                             }
@@ -352,10 +335,10 @@ export function HomeHero({
                       }
                     >
                       <Box padding={3}>
-                        <Text color="white" fontSize="sm" fontWeight="800" lineClamp="1">
+                        <Text color="fg.default" fontSize="sm" fontWeight="800" lineClamp="1">
                           {category.name}
                         </Text>
-                        <Text color="whiteAlpha.900" fontSize="xs" fontWeight="600">
+                        <Text color="fg.muted" fontSize="xs" fontWeight="600">
                           {category.itemCount} dishes
                         </Text>
                       </Box>
@@ -376,7 +359,7 @@ export function HomeHero({
         left={0}
         right={0}
         height="48px"
-        backgroundImage="linear-gradient(180deg, transparent, rgba(0,0,0,0.45))"
+        backgroundImage="linear-gradient(180deg, transparent, #FCFBF7)"
         pointerEvents="none"
       />
     </Box>

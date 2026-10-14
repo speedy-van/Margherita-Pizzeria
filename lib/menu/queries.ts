@@ -21,26 +21,6 @@ import type {
  * mutation routes.
  */
 
-const VEGETARIAN_HINTS = [
-  "vegetarian",
-  "margherita",
-  "funghi",
-  "quattro formaggi",
-  "garlic bread",
-  "mozzarella",
-  "olives",
-  "fries",
-  "tiramisu",
-  "cannoli",
-  "nutella",
-  "water",
-  "san pellegrino",
-  "coca-cola",
-  "diet coke",
-];
-
-const MEAT_HINTS = ["pepperoni", "piccante", "ham", "salami", "chicken", "anchov"];
-
 function safeAllergens(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   const out: string[] = [];
@@ -52,29 +32,17 @@ function safeAllergens(value: unknown): string[] {
   return out;
 }
 
-function deriveDietaryTags(
-  name: string,
-  description: string | null,
-  allergens: string[],
-): string[] {
+function deriveDietaryTags(name: string, description: string | null): string[] {
   const haystack = `${name} ${description ?? ""}`.toLowerCase();
   const tags: string[] = [];
 
-  const hasMeat = MEAT_HINTS.some((hint) => haystack.includes(hint));
-  const looksVeg = VEGETARIAN_HINTS.some((hint) => haystack.includes(hint));
-
-  if (!hasMeat && looksVeg) {
+  if (/\bvegetarian\b/.test(haystack)) {
     tags.push("vegetarian");
   }
-  if (
-    !hasMeat &&
-    looksVeg &&
-    !allergens.includes("milk") &&
-    !allergens.includes("egg")
-  ) {
+  if (/\bvegan\b/.test(haystack)) {
     tags.push("vegan");
   }
-  if (!allergens.includes("gluten")) {
+  if (/\bgluten[- ]free\b/.test(haystack)) {
     tags.push("gluten-free");
   }
   return tags;
@@ -93,7 +61,7 @@ function toPublicItem(row: MenuItem): PublicMenuItem {
     imageUrl: row.imageUrl ?? null,
     available: row.available,
     allergens: allergens.filter((a) => !HIDDEN_ALLERGENS.has(a)),
-    dietaryTags: deriveDietaryTags(row.name, row.description ?? null, allergens),
+    dietaryTags: deriveDietaryTags(row.name, row.description ?? null),
   };
 }
 
@@ -107,6 +75,7 @@ export async function getPublicMenu(): Promise<PublicMenuResponse> {
   const items = await db
     .select()
     .from(menuItems)
+    .where(eq(menuItems.available, true))
     .orderBy(asc(menuItems.name));
 
   const byCategory = new Map<string, PublicMenuItem[]>();
