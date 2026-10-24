@@ -93,7 +93,7 @@ workflows:
           keychain initialize
           keychain add-certificates --certificate "$CUSTOMER_CERTIFICATE_PATH" --certificate-password @env:CM_CERTIFICATE_PASSWORD --silent
           xcode-project use-profiles --project "$CUSTOMER_XCODE_PROJECT" --profile "$CUSTOMER_PROFILE_PATH" --archive-method app-store \
-            --custom-export-options='{"method":"app-store-connect","signingStyle":"manual","teamID":"BXK52CMHR2","manageAppVersionAndBuildNumber":false}'
+            --custom-export-options='{"signingStyle":"manual","teamID":"BXK52CMHR2","manageAppVersionAndBuildNumber":false}'
       - name: Build signed App Store IPA without uploading it
         script: |
           set -euo pipefail
