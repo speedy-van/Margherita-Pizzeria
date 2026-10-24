@@ -92,6 +92,8 @@ workflows:
           set +x
           keychain initialize
           keychain add-certificates --certificate "$CUSTOMER_CERTIFICATE_PATH" --certificate-password @env:CM_CERTIFICATE_PASSWORD --silent
+          mkdir -p "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          install -m 600 "$CUSTOMER_PROFILE_PATH" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/2615ae6d-9fcd-438b-864e-298e0e567101.mobileprovision"
           xcode-project use-profiles --project "$CUSTOMER_XCODE_PROJECT" --profile "$CUSTOMER_PROFILE_PATH" --archive-method app-store \
             --custom-export-options='{"signingStyle":"manual","teamID":"BXK52CMHR2","manageAppVersionAndBuildNumber":false}'
       - name: Build signed App Store IPA without uploading it
