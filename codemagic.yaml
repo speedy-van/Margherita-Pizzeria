@@ -1,0 +1,118 @@
+# Manual customer release workflow. Import signing files only after explicit user
+# consent and before starting this workflow. No Expo token or ASC API key is used.
+workflows:
+  customer-ios-1-1-0:
+    name: Margherita customer 1.1.0 build 11
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    working_directory: apps/customer-mobile
+    environment:
+      node: 24
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        certificates:
+          - margherita-customer-distribution
+        provisioning_profiles:
+          - margherita-customer-appstore-1-1-0
+      vars:
+        CI: '1'
+        EXPO_NO_TELEMETRY: '1'
+        EXPO_NO_CAPABILITY_SYNC: '1'
+        EXPO_PUBLIC_API_BASE_URL: https://www.margheritapizza.uk
+        CUSTOMER_BUNDLE_ID: uk.margheritapizzeria.customer
+        CUSTOMER_VERSION: 1.1.0
+        CUSTOMER_BUILD_NUMBER: '11'
+    scripts:
+      - name: Verify reviewed release identity and record source
+        script: |
+          set -euo pipefail
+          set +x
+          mkdir -p "$CM_BUILD_DIR/customer-native-signing-build"
+          test "$(git rev-parse HEAD:apps/customer-mobile)" = '3955169a6b1e4b74ef7512141e587009c877044f'
+          git rev-parse HEAD > "$CM_BUILD_DIR/customer-native-signing-build/source-commit.txt"
+          xcodebuild -version | tee "$CM_BUILD_DIR/customer-native-signing-build/xcode-version.txt"
+          node <<'JS'
+          const app = require('./app.json').expo;
+          if (app.ios.bundleIdentifier !== process.env.CUSTOMER_BUNDLE_ID || app.version !== process.env.CUSTOMER_VERSION || app.ios.buildNumber !== process.env.CUSTOMER_BUILD_NUMBER || app.userInterfaceStyle !== 'light' || app.ios.supportsTablet !== false) throw Error('Unexpected customer release identity');
+          if (process.env.EXPO_PUBLIC_API_BASE_URL !== 'https://www.margheritapizza.uk') throw Error('The customer production API is required');
+          JS
+      - name: Install locked dependencies and run release checks
+        script: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npx --yes tsx@4.22.3 --test src/lib/customer-data.test.mjs src/screens/pending-checkout.test.mjs
+      - name: Generate native customer project and install pods
+        script: |
+          set -euo pipefail
+          npx expo prebuild --platform ios --no-install
+          pod install --project-directory=ios
+          python3 <<'PY'
+          import glob, os
+          projects = glob.glob('ios/*.xcodeproj')
+          workspaces = glob.glob('ios/*.xcworkspace')
+          if len(projects) != 1 or len(workspaces) != 1:
+              raise SystemExit('Expected one generated customer project and workspace')
+          with open(os.environ['CM_ENV'], 'a') as out:
+              out.write('CUSTOMER_XCODE_PROJECT=' + os.path.abspath(projects[0]) + '\n')
+              out.write('CUSTOMER_XCODE_WORKSPACE=' + os.path.abspath(workspaces[0]) + '\n')
+              out.write('CUSTOMER_XCODE_SCHEME=' + os.path.basename(projects[0]).removesuffix('.xcodeproj') + '\n')
+          PY
+      - name: Apply only uploaded customer signing identities
+        script: |
+          set -euo pipefail
+          set +x
+          # ios_signing automatically initializes the temporary build keychain and
+          # imports the referenced certificate; do not reset that imported keychain.
+          xcode-project use-profiles --project "$CUSTOMER_XCODE_PROJECT" --archive-method app-store \
+            --custom-export-options='{"method":"app-store-connect","signingStyle":"manual","teamID":"BXK52CMHR2","manageAppVersionAndBuildNumber":false}'
+      - name: Build signed App Store IPA without uploading it
+        script: |
+          set -euo pipefail
+          unset SKIP_BUNDLING
+          xcode-project build-ipa \
+            --workspace "$CUSTOMER_XCODE_WORKSPACE" \
+            --scheme "$CUSTOMER_XCODE_SCHEME" \
+            --config Release \
+            --archive-flags="-destination 'generic/platform=iOS'" \
+            --archive-xcargs="CURRENT_PROJECT_VERSION=11 MARKETING_VERSION=1.1.0" \
+            --export-options-plist "$HOME/export_options.plist"
+      - name: Verify signed customer app and export a non-secret receipt
+        script: |
+          set -euo pipefail
+          python3 <<'PY'
+          import glob, hashlib, json, os, pathlib, plistlib, subprocess, tempfile, zipfile
+          ipas = glob.glob('build/ios/ipa/*.ipa')
+          if len(ipas) != 1:
+              raise SystemExit('Expected one signed customer IPA')
+          ipa = pathlib.Path(ipas[0])
+          with tempfile.TemporaryDirectory(prefix='margherita-signed-verify-') as scratch:
+              with zipfile.ZipFile(ipa) as source:
+                  source.extractall(scratch)
+              apps = list(pathlib.Path(scratch, 'Payload').glob('*.app'))
+              if len(apps) != 1:
+                  raise SystemExit('Expected one customer app in IPA')
+              app = apps[0]
+              info = plistlib.loads((app / 'Info.plist').read_bytes())
+              expected = {'CFBundleIdentifier': 'uk.margheritapizzeria.customer', 'CFBundleShortVersionString': '1.1.0', 'CFBundleVersion': '11'}
+              if any(str(info.get(key)) != value for key, value in expected.items()):
+                  raise SystemExit('Signed IPA identity does not match the reviewed customer release')
+              if not (app / 'main.jsbundle').is_file():
+                  raise SystemExit('Signed IPA is missing its self-contained JavaScript bundle')
+              profile = plistlib.loads(subprocess.check_output(['security', 'cms', '-D', '-i', str(app / 'embedded.mobileprovision')]))
+              if str(profile.get('UUID', '')).lower() != '2615ae6d-9fcd-438b-864e-298e0e567101' or profile.get('TeamIdentifier') != ['BXK52CMHR2']:
+                  raise SystemExit('Unexpected customer provisioning profile')
+              entitlements = profile.get('Entitlements', {})
+              if entitlements.get('application-identifier') != 'BXK52CMHR2.uk.margheritapizzeria.customer' or entitlements.get('get-task-allow') is not False:
+                  raise SystemExit('The IPA must use the customer App Store profile')
+              subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+              receipt = {'codemagicBuildId': os.environ.get('CM_BUILD_ID'), 'sourceCommit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'nativeAppTreeSha': subprocess.check_output(['git', 'rev-parse', 'HEAD:apps/customer-mobile'], text=True).strip(), 'platform': 'ios-device', 'distribution': 'app-store', 'bundleId': info['CFBundleIdentifier'], 'version': info['CFBundleShortVersionString'], 'buildNumber': info['CFBundleVersion'], 'profileUuid': profile['UUID'], 'team': profile['TeamIdentifier'][0], 'ipaFile': ipa.name, 'ipaSha256': hashlib.sha256(ipa.read_bytes()).hexdigest(), 'signatureVerified': True, 'uploadedToAppStoreConnect': False}
+              pathlib.Path(os.environ['CM_BUILD_DIR'], 'customer-native-signing-build', 'signed-ipa-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+              print(json.dumps(receipt, indent=2))
+          PY
+    artifacts:
+      - $CM_BUILD_DIR/apps/customer-mobile/build/ios/ipa/*.ipa
+      - $CM_BUILD_DIR/customer-native-signing-build/*.json
+      - $CM_BUILD_DIR/customer-native-signing-build/*.txt
+      - /tmp/xcodebuild_logs/*.log
