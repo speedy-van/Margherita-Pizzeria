@@ -1,5 +1,5 @@
-# Manual customer release workflow. Import signing files only after explicit user
-# consent and before starting this workflow. No Expo token or ASC API key is used.
+# Manual customer release workflow. Approved existing signing files are stored as
+# encrypted app-scoped variables. No Expo token or ASC API key is used.
 workflows:
   customer-ios-1-1-0:
     name: Margherita customer 1.1.0 build 11
@@ -10,11 +10,8 @@ workflows:
       node: 24
       xcode: latest
       cocoapods: default
-      ios_signing:
-        certificates:
-          - margherita-customer-distribution
-        provisioning_profiles:
-          - margherita-customer-appstore-1-1-0
+      groups:
+        - margherita_customer_signing
       vars:
         CI: '1'
         EXPO_NO_TELEMETRY: '1'
@@ -59,13 +56,43 @@ workflows:
               out.write('CUSTOMER_XCODE_WORKSPACE=' + os.path.abspath(workspaces[0]) + '\n')
               out.write('CUSTOMER_XCODE_SCHEME=' + os.path.basename(projects[0]).removesuffix('.xcodeproj') + '\n')
           PY
-      - name: Apply only uploaded customer signing identities
+      - name: Decode only the approved customer signing files
         script: |
           set -euo pipefail
           set +x
-          # ios_signing automatically initializes the temporary build keychain and
-          # imports the referenced certificate; do not reset that imported keychain.
-          xcode-project use-profiles --project "$CUSTOMER_XCODE_PROJECT" --archive-method app-store \
+          umask 077
+          python3 <<'PY'
+          import base64, os, pathlib, plistlib, subprocess, tempfile
+          signing_dir = pathlib.Path(tempfile.mkdtemp(prefix='margherita-customer-signing-'))
+          signing_dir.chmod(0o700)
+          certificate = signing_dir / 'customer-distribution.p12'
+          profile = signing_dir / 'customer-app-store.mobileprovision'
+          for name, destination in [('CM_CERTIFICATE', certificate), ('CM_PROVISIONING_PROFILE', profile)]:
+              value = os.environ.get(name)
+              if not value:
+                  raise SystemExit('Required encrypted customer signing variable is missing')
+              content = base64.b64decode(value, validate=True)
+              if len(content) < 1000 or content[0] != 0x30:
+                  raise SystemExit('Unexpected customer signing file encoding')
+              destination.write_bytes(content)
+              destination.chmod(0o600)
+          if 'CM_CERTIFICATE_PASSWORD' not in os.environ:
+              raise SystemExit('Encrypted certificate password variable is missing')
+          decoded = plistlib.loads(subprocess.check_output(['security', 'cms', '-D', '-i', str(profile)]))
+          entitlements = decoded.get('Entitlements', {})
+          if str(decoded.get('UUID', '')).lower() != '2615ae6d-9fcd-438b-864e-298e0e567101' or decoded.get('TeamIdentifier') != ['BXK52CMHR2'] or entitlements.get('application-identifier') != 'BXK52CMHR2.uk.margheritapizzeria.customer' or entitlements.get('get-task-allow') is not False:
+              raise SystemExit('The uploaded customer App Store profile identity does not match')
+          with open(os.environ['CM_ENV'], 'a') as out:
+              out.write('CUSTOMER_CERTIFICATE_PATH=' + str(certificate) + '\n')
+              out.write('CUSTOMER_PROFILE_PATH=' + str(profile) + '\n')
+          PY
+      - name: Import approved signing files and apply the customer profile
+        script: |
+          set -euo pipefail
+          set +x
+          keychain initialize
+          keychain add-certificates --certificate "$CUSTOMER_CERTIFICATE_PATH" --certificate-password @env:CM_CERTIFICATE_PASSWORD --silent
+          xcode-project use-profiles --project "$CUSTOMER_XCODE_PROJECT" --profile "$CUSTOMER_PROFILE_PATH" --archive-method app-store \
             --custom-export-options='{"method":"app-store-connect","signingStyle":"manual","teamID":"BXK52CMHR2","manageAppVersionAndBuildNumber":false}'
       - name: Build signed App Store IPA without uploading it
         script: |
