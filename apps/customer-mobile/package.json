@@ -1,0 +1,36 @@
+{
+  "name": "margherita-customer-mobile",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Margherita customer ordering app for iOS built with Expo and React Native.",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --port 8083",
+    "start:lan": "expo start --port 8083 --lan",
+    "start:tunnel": "expo start --port 8083 --tunnel",
+    "ios": "expo start --port 8083 --ios",
+    "web": "expo start --port 8083 --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/playfair-display": "^0.4.2",
+    "@expo/metro-runtime": "~57.0.17",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "^57.0.9",
+    "expo-asset": "~57.0.20",
+    "expo-build-properties": "~57.0.22",
+    "expo-constants": "~57.0.22",
+    "expo-font": "~57.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.14",
+    "typescript": "~6.0.3"
+  }
+}

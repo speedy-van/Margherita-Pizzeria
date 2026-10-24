@@ -1,0 +1,188 @@
+name: Customer iOS native redesign QA
+
+on:
+  push:
+    branches: [ios/customer-redesign-1.1.0]
+    paths:
+      - apps/customer-mobile/**
+      - .github/workflows/customer-ios-redesign.yml
+  workflow_dispatch:
+    inputs:
+      build_unsigned_device_archive:
+        description: Also create an unsigned device archive (no upload or signing)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: customer-ios-redesign-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-simulator-qa:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/customer-mobile
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_NO_CAPABILITY_SYNC: '1'
+      EXPO_PUBLIC_API_BASE_URL: https://www.margheritapizza.uk
+      QA_OUTPUT: ${{ github.workspace }}/native-qa-output
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/customer-mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Select installed stable Xcode and record source
+        run: |
+          set -euo pipefail
+          mkdir -p "$QA_OUTPUT"
+          python3 - <<'PY'
+          import glob, os, plistlib, re
+          choices = []
+          for app in glob.glob('/Applications/Xcode*.app'):
+              if 'beta' in app.lower():
+                  continue
+              with open(app + '/Contents/Info.plist', 'rb') as source:
+                  version = plistlib.load(source).get('CFBundleShortVersionString', '')
+              choices.append((tuple(map(int, re.findall(r'\d+', version))), app))
+          if not choices:
+              raise SystemExit('No stable Xcode is installed on this runner')
+          version, app = max(choices)
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              target.write('DEVELOPER_DIR=' + app + '/Contents/Developer\n')
+          print('Selected Xcode ' + '.'.join(map(str, version)))
+          PY
+          git rev-parse HEAD > "$QA_OUTPUT/source-commit.txt"
+      - name: Install and check the reviewed native source
+        run: |
+          set -euo pipefail
+          xcodebuild -version | tee "$QA_OUTPUT/xcode-version.txt"
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npx --yes tsx@4.22.3 --test src/lib/customer-data.test.mjs src/screens/pending-checkout.test.mjs
+          node - <<'JS'
+          const app = require('./app.json').expo;
+          if (app.ios.bundleIdentifier !== 'uk.margheritapizzeria.customer' || app.version !== '1.1.0' || app.ios.buildNumber !== '11' || app.userInterfaceStyle !== 'light' || app.ios.supportsTablet !== false) throw Error('Unexpected customer release identity');
+          if (process.env.EXPO_PUBLIC_API_BASE_URL !== 'https://www.margheritapizza.uk') throw Error('Expected the production API');
+          JS
+      - name: Generate iOS project and install pods
+        run: |
+          set -euo pipefail
+          npx expo prebuild --platform ios --no-install
+          pod install --project-directory=ios
+          python3 - <<'PY'
+          import glob, os
+          workspaces = glob.glob('ios/*.xcworkspace')
+          projects = glob.glob('ios/*.xcodeproj')
+          if len(workspaces) != 1 or len(projects) != 1:
+              raise SystemExit('Expected exactly one generated app workspace and project')
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              target.write('XCODE_WORKSPACE=' + os.path.abspath(workspaces[0]) + '\n')
+              target.write('XCODE_SCHEME=' + os.path.basename(projects[0]).removesuffix('.xcodeproj') + '\n')
+          PY
+      - name: Create actual iPhone simulators
+        run: |
+          set -euo pipefail
+          xcrun simctl list runtimes --json > "$QA_OUTPUT/runtimes.json"
+          xcrun simctl list devicetypes --json > "$QA_OUTPUT/device-types.json"
+          python3 - <<'PY'
+          import json, os, subprocess
+          out = os.environ['QA_OUTPUT']
+          runtimes = json.load(open(out + '/runtimes.json'))['runtimes']
+          choices = [r for r in runtimes if r.get('isAvailable') and '.iOS-' in r['identifier']]
+          if not choices:
+              raise SystemExit('No usable iOS simulator runtime is installed')
+          runtime = max(choices, key=lambda r: tuple(map(int, r['version'].split('.'))))
+          types = json.load(open(out + '/device-types.json'))['devicetypes']
+          selected = []
+          for candidates in [('iPhone 16 Plus', 'iPhone 17 Pro Max', 'iPhone 18 Pro Max'), ('iPhone 16 Pro', 'iPhone 17 Pro', 'iPhone 18 Pro')]:
+              device = next((t for name in candidates for t in types if t['name'] == name), None)
+              if not device:
+                  raise SystemExit('No suitable iPhone simulator device type is available')
+              udid = subprocess.check_output(['xcrun', 'simctl', 'create', 'Margherita QA ' + device['name'], device['identifier'], runtime['identifier']], text=True).strip()
+              selected.append({'name': device['name'], 'udid': udid, 'runtime': runtime['name']})
+          json.dump(selected, open(out + '/qa-simulators.json', 'w'), indent=2)
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              target.write('BUILD_SIMULATOR_ID=' + selected[0]['udid'] + '\n')
+          PY
+      - name: Build self-contained unsigned Release simulator app
+        run: |
+          set -euo pipefail
+          unset SKIP_BUNDLING
+          xcodebuild -list -json -workspace "$XCODE_WORKSPACE" > "$QA_OUTPUT/xcode-schemes.json"
+          xcodebuild build -workspace "$XCODE_WORKSPACE" -scheme "$XCODE_SCHEME" \
+            -configuration Release -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$BUILD_SIMULATOR_ID" \
+            -derivedDataPath "$QA_OUTPUT/DerivedData" \
+            ONLY_ACTIVE_ARCH=YES CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            | tee "$QA_OUTPUT/xcodebuild-simulator.log"
+          SIMULATOR_APP="$(find "$QA_OUTPUT/DerivedData/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$SIMULATOR_APP"
+          test -f "$SIMULATOR_APP/main.jsbundle"
+          printf 'SIMULATOR_APP=%s\n' "$SIMULATOR_APP" >> "$GITHUB_ENV"
+          tar -czf "$QA_OUTPUT/customer-ios-simulator.app.tar.gz" -C "$(dirname "$SIMULATOR_APP")" "$(basename "$SIMULATOR_APP")"
+      - name: Install Maestro for local simulator QA
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error https://get.maestro.mobile.dev -o "$RUNNER_TEMP/install-maestro.sh"
+          bash "$RUNNER_TEMP/install-maestro.sh"
+          printf '%s\n' "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Capture Home, Menu, empty Bag, Booking and Tracking without submissions
+        run: |
+          set -euo pipefail
+          FLOW="$GITHUB_WORKSPACE/apps/customer-mobile/.maestro/store-screenshots.yml"
+          test -f "$FLOW"
+          mkdir -p "$QA_OUTPUT/screenshots"
+          python3 -c 'import json,os; [print(d["udid"] + "|" + d["name"].replace(" ", "-")) for d in json.load(open(os.environ["QA_OUTPUT"] + "/qa-simulators.json"))]' > "$QA_OUTPUT/simulators-to-capture.txt"
+          while IFS='|' read -r DEVICE_ID DEVICE_NAME; do
+            OUTPUT="$QA_OUTPUT/screenshots/$DEVICE_NAME"
+            mkdir -p "$OUTPUT"
+            xcrun simctl boot "$DEVICE_ID"
+            xcrun simctl bootstatus "$DEVICE_ID" -b
+            xcrun simctl ui "$DEVICE_ID" appearance light
+            xcrun simctl status_bar "$DEVICE_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+            xcrun simctl install "$DEVICE_ID" "$SIMULATOR_APP"
+            (cd "$OUTPUT" && maestro --device "$DEVICE_ID" test --format junit --output test-report.xml --test-output-dir . "$FLOW")
+            xcrun simctl status_bar "$DEVICE_ID" clear
+            xcrun simctl shutdown "$DEVICE_ID"
+          done < "$QA_OUTPUT/simulators-to-capture.txt"
+          (cd "$QA_OUTPUT" && zip -r screenshots.zip screenshots)
+      - name: Optional unsigned device archive
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_unsigned_device_archive }}
+        run: |
+          set -euo pipefail
+          xcodebuild archive -workspace "$XCODE_WORKSPACE" -scheme "$XCODE_SCHEME" \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$QA_OUTPUT/Customer-unsigned.xcarchive" \
+            CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            | tee "$QA_OUTPUT/xcodebuild-device-archive.log"
+          tar -czf "$QA_OUTPUT/customer-ios-device-unsigned.xcarchive.tar.gz" -C "$QA_OUTPUT" Customer-unsigned.xcarchive
+      - name: Upload actual native QA artifacts and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-ios-1.1.0-build-11-native-qa
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            native-qa-output/screenshots.zip
+            native-qa-output/screenshots/**
+            native-qa-output/*.tar.gz
+            native-qa-output/*.json
+            native-qa-output/*.txt
+            native-qa-output/*.log

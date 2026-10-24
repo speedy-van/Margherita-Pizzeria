@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Margherita Pizzeria Glasgow",
+    "slug": "margherita-customer",
+    "owner": "ahmadawadalwakai",
+    "version": "1.1.0",
+    "icon": "./assets/icons/icon.png",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "margherita",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "ios": {
+      "bundleIdentifier": "uk.margheritapizzeria.customer",
+      "icon": "./assets/icons/icon.png",
+      "supportsTablet": false,
+      "infoPlist": {
+        "CFBundleDisplayName": "Margherita",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "buildNumber": "11"
+    },
+    "android": {
+      "package": "uk.margheritapizzeria.customer",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "backgroundColor": "#FCFBF7"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "MARGHERITA_PROD_URL": "https://www.margheritapizza.uk",
+      "eas": {
+        "projectId": "d944ded5-2b70-4c0a-9f74-3acb94f8b5b2"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ]
+    ]
+  }
+}

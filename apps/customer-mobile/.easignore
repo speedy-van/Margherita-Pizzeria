@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist*/
+store/
+*.log
+*.test.*
+store.config.json
+README.md
+.git/
+.env*
